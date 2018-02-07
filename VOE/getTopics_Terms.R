@@ -53,6 +53,7 @@ getTopics = function(x, n, groups = NA, scheme = "docfreq",text_field=length(x),
 
 getTerms = function(x, n, groups = NA, scheme = "docfreq",text_field=length(x),docid_field=1) {
   x1=as.data.table(df)
+  x1 = na.omit(x1,cols=groups)
   x_corpus=corpus(as.data.frame(x1),text_field = text_field,docid_field = docid_field)
   x = dfm(x_corpus,remove=c(stopwords(),'na','n','n a','none','western digital','wd'),
           tolower = T,thesaurus = likeWords,verbose = T,remove_punct=T,remove_numbers=T)
@@ -63,20 +64,49 @@ getTerms = function(x, n, groups = NA, scheme = "docfreq",text_field=length(x),d
     group_names = names(y)
     
     ## Manipulate named vectors into data.frame and melt to long form
+    
+    ### Handling multiple groups
+    #   Constrained to only 2 factors in groups, anything more will require feature engineering to build a new column for it
+    #   Building a new col will need to be bone pre-analysis
+    ###
+    
+    ## Cleaning Req's
+      # - no NA's 
     outPut =list()
     for (i in 1:length(y)){
       tempd0 = data.frame(as.list(y[i]))
       setDT(tempd0,keep.rownames = T)
       colnames(tempd0)=c('Term','Count')
       tempd0$Term = tolower(tempd0$Term)
-      tempd0[,Prct:=tempd0[,2]/nrow(x1[get(groups)==group_names[i]])*100]
+      if (length(groups)==2){
+        group_names_split = as.data.frame(group_names)
+        group_names_split <- data.frame(do.call('rbind', strsplit(as.character(group_names_split$group_names),'.',fixed=TRUE)))
+        group1 = groups[1]
+        group2 = groups[2]
+        
+        tempd0[,Prct:=(tempd0[,2]/nrow(x1[get(group1)==group_names_split[i,1]&get(group2)==group_names_split[i,2]]))*100]
+ 
+      }
+      else if (length(groups)==3){
+        group_names_split = as.data.frame(group_names)
+        group_names_split <- data.frame(do.call('rbind', strsplit(as.character(group_names_split$group_names),'.',fixed=TRUE)))
+        group1 = groups[1]
+        group2 = groups[2]
+        group3 = groups[3]
+      
+        tempd0[,Prct:=tempd0[,2]/nrow(x1[get(group1)==group_names_split[i,1]&get(group2)==group_names_split[i,2]&get(group3)==group_names_split[i,3]])*100]
+     
+      }
+      else{tempd0[,Prct:=tempd0[,2]/nrow(x1[get(groups)==group_names[i]])*100]}
       tempd0 = melt(tempd0,measure.vars = c('Prct','Count'))
       tempd0$group = group_names[i]
       outPut[[i]]=tempd0
       
     }
   y = rbindlist(outPut,use.names = T,fill = T)
-  } else {
+  y
+  } 
+  else {
 
     y = topfeatures(x, n = n, scheme = "docfreq")
     y = as.data.table((y), keep.rownames = T)
@@ -90,4 +120,8 @@ getTerms = function(x, n, groups = NA, scheme = "docfreq",text_field=length(x),d
 }
 
 # topTopics(df,groups='Region',n=100)
-# topTerms(df,groups='Region',n=100)
+test = getTerms(df,groups=c('Gender','Region'),n=100)
+
+write.csv(test,'~/Desktop/test.csv')
+
+         
