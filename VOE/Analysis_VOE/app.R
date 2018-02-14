@@ -12,14 +12,16 @@ needs(
   reshape,
   plotly,
   shiny,
-  rCharts
+  rCharts,
+  ggthemes,
+  shinyWidgets,DT
 )
 options(stringsAsFactors = F)
 source('~/Documents/Git Clones/WD/VOE/getTopics_Terms.R')
 
 # Define UI for data upload app ----
 ui <- fluidPage(# App title ----
-                titlePanel("CommentR"),
+                titlePanel("Employtics"),
                 
                 # Sidebar layout with input and output definitions ----
                 sidebarLayout(
@@ -38,41 +40,75 @@ ui <- fluidPage(# App title ----
                       choices = c(Topic = "Topic",
                                   Term = "Terms"),
                       selected = "Topic"
-                    )
+                    ),
+                    uiOutput('textField'),
+                    uiOutput('docIdField')
                   ),
                   
                   # Main panel for displaying outputs ----
                   mainPanel(tabsetPanel(
+                    
+                    ## Table View
                     tabPanel('Raw Data View', DT::dataTableOutput("table")),
+                    
+                    ## Plots
                     tabPanel(
                       'Plot',
-                      showOutput("groupedPlotData", lib = 'nvd3'),
-                      #Input: Invert Graph
-                      checkboxInput('invert', 'Invert Graph', value = F),
-                      # Input: Select Prct or Count
-                      radioButtons(
+                     fluidRow(column(4,radioButtons(
                         "countType",
                         "Count Type",
                         choices = c(Prct = "Prct",
                                     Count = "Count"),
                         selected = "Prct"
-                      ),
+                      ))),
                       
-                      uiOutput('selectGroup')
-                    ),
+                      fluidRow(column(4,uiOutput('selectGroup'))),
+                      fluidRow(column(10,showOutput("groupedPlotData", lib = 'nvd3'))),
+                      #Input:invert 
+                      fluidRow(column(4,checkboxInput('invert', 'Invert Graph', value = F)),column(4,uiOutput('termsToShow')))),
+                      #Input: Number of words to show
+                      
+                    
+                    #W Wordclouds
                     tabPanel(
                       'Word Clouds',
                       fluidRow(uiOutput('selectGroup2')),
-                      fluidRow(plotOutput('wordcloud',width = "100%",height ='800')),
-                      fluidRow(plotOutput('keyness',width='100%',height='600'))
+                      fluidRow(plotOutput(
+                        'wordcloud', width = "100%", height = '800'
+                      )),
+                      fluidRow(uiOutput('targetKeyness')),
+                      fluidRow(plotOutput(
+                        'keyness', width = '100%', height = '600'
+                      ))
+                    ),
+                    
+                    ## KWIC
+                    tabPanel(
+                      'Keyword in Context',
+                      # fluidRow(uiOutput('SelectGroup3')),
+                      fluidRow(column(4,textInput("keyword", "Enter keyword :", "Western Digital")),
+                      fluidRow(column(4, sliderInput("context", "Enter number of words for context :",
+                                                     min = 1, max = 10,
+                                                     value = 5))),
+                      fluidRow(column(4,uiOutput('selectGroup4'))),
+                      fluidRow(column(4,uiOutput('subsetSelect'))),
+                      fluidRow(column(10,DT::dataTableOutput("kwicTable"))))
                     )
                   ))
                 ))
 
 
+###                         ####
+###                         ####
+###         SERVER FILER    ####
+###                         ####
+###                         ####
+
 # Define server logic to read selected file and Visualize----
 server = function(input, output) {
   options(shiny.maxRequestSize = 60 * 1024 ^ 2)
+  
+  # Raw Data Input
   datasetInput <- reactive({
     infile <- input$FileInput
     if (is.null(infile))
@@ -82,22 +118,68 @@ server = function(input, output) {
   
   
   d1 = reactive({
-    if (input$analysisType == 'Topic') {
-      temp <- getTopics(datasetInput(), groups = input$selectGroup)
-    }
-    else{
+    if(is.null(input$selectGroup)){
+      if (input$analysisType == 'Topic') {
+        temp <- getTopics(datasetInput(),text_field = input$textField,docid_field = input$docIdField)
+      }
+      else{
+        temp <- getTerms(datasetInput(),
+                         n = input$termsToShow,text_field = input$textField,docid_field = input$docIdField)
+      }}
+      else{
+        if (input$analysisType == 'Topic') {
+          temp <- getTopics(datasetInput(), groups = input$selectGroup,text_field = input$textField,docid_field = input$docIdField)
+            }
+      else{
       temp <- getTerms(datasetInput(),
                        groups = input$selectGroup,
-                       n = 15)
-    }
+                       n = input$termsToShow,text_field = input$textField,docid_field = input$docIdField)
+    }}
   })
   
-  # Table View --------------------------------------------------------------
+  #DF Corpus
+  df_corpus = reactive({
+    dTemp = datasetInput()
+    df_corpus = corpus(
+      as.data.frame(dTemp),
+      text_field = input$textField,
+      docid_field = input$docIdField
+    )
+  })
+  
+  # Raw data view
   
   output$table = DT::renderDataTable(datasetInput(), options = list(scrollX = TRUE))
   
-  # Data manipulatation ----------------------------------------------------
+  # Text Field
+  output$textField = renderUI({
+    colnames <- names(datasetInput())
+    # Dropdown for selecting groups
+    selectizeInput(
+      "textField",
+      "Which column contains the text you want to analyze?",
+      multiple = T,
+      options = list(placeholder = 'Select one column',maxItems=1),
+      choices  = colnames
+    )
+  })
   
+  # DocID Field
+  output$docIdField = renderUI({
+    colnames <- names(datasetInput())
+    # Dropdown for selecting groups
+    selectizeInput(
+      "docIdField",
+      "Which column contains the document ID field? (usually the Employee ID field)",
+      multiple = T,
+      options = list(placeholder = 'Select one column',maxItems=1),
+      choices  = colnames
+    )
+  })
+  
+  
+  
+  #Select groupings for bar plots
   output$selectGroup = renderUI({
     colnames <- names(datasetInput())
     # Dropdown for selecting groups
@@ -110,6 +192,50 @@ server = function(input, output) {
     )
   })
   
+  #Select groupings for KWIC
+  output$selectGroup4 = renderUI({
+    colnames <- names(datasetInput())
+    # Dropdown for selecting groups
+    selectizeInput(
+      "selectGroup4",
+      "Choose groupings:",
+      options = list(placeholder = 'Select your group:',maxItems=1),
+      choices  = colnames
+    )
+  })
+  
+
+  # output$subsetSelect = renderUI({
+  # 
+  #   dTemp = d3()
+  #   # Dropdown for selecting groups
+  #   selectizeInput(
+  #     "subsetSelect",
+  #     "Choose your field:",
+  #     options = list(placeholder = 'Select your group:',maxItems=1),
+  #     choices  = nameFields
+  #   )
+  # })
+  
+  #Select number of terms to show for Top Terms
+  output$termsToShow =renderUI({
+  
+    fluidRow(column(8, sliderInput("termsToShow", "Enter number of words to show :",
+                                   min = 1, max = 20,
+                                   value = 10)))
+  })
+  
+  #Select target for Keyness
+  output$targetKeyness = renderUI({
+    dfCorp = dCorp()
+    targetNames = docnames(dfCorp)
+    selectizeInput('targetKeyness',
+                   'Choose Target:',
+                   multiple = T,
+                   choices = targetNames)
+  })
+  
+  #Select Groupings for word clouds
   output$selectGroup2 = renderUI({
     colnames <- names(datasetInput())
     # Dropdown for selecting groups on word Clouds
@@ -117,15 +243,47 @@ server = function(input, output) {
       "selectGroup2",
       "Choose groupings:",
       multiple = T,
-      options = list(
-        placeholder = 'Select a max of 1 different fields'
-      ),
+      options = list(placeholder = 'Select a max of 1 different fields'),
+      choices  = colnames
+    )
+  })
+  
+  #Select Groupings for KWIC
+  output$selectGroup3 = renderUI({
+    colnames <- names(datasetInput())
+    # Dropdown for selecting groups on word Clouds
+    selectizeInput(
+      "selectGroup3",
+      "Choose groupings:",
+      multiple = T,
+      options = list(placeholder = '-------'),
       choices  = colnames
     )
   })
   
   output$groupedPlotData = renderChart2({
-    dp = d1()[variable == input$countType,]
+    
+    if(is.null(input$selectGroup)){
+      dp = d1()[variable == input$countType, ]
+      varXY = (names(dp)[1])
+      p = nPlot(
+        as.formula(paste('value ~', varXY)),
+        data = dp,
+        type = 'multiBarHorizontalChart'
+      )
+      
+      p$set(title = paste(input$analysisType))
+      p$chart(margin = list(left = 100))
+      p$xAxis(rotateLabels = -45)
+      p$yAxis(axisLabel = ifelse(
+        input$countType == 'Prct',
+        sprintf('%s', '% of Comments'),
+        sprintf('%s', 'Total Count')
+      ))
+      return(p)
+    }
+    else{
+    dp = d1()[variable == input$countType, ]
     if (input$invert == F) {
       varXY = (names(dp)[1])
       p = nPlot(
@@ -162,20 +320,20 @@ server = function(input, output) {
         sprintf('%s', 'Total Count')
       ))
       return(p)
-    }
+    }}
   })
   
   dCorp = reactive({
-    
-    x_corpus = corpus(as.data.frame(datasetInput()),
-                      text_field = length(x),
-                      docid_field = 1)
+    x_corpus = corpus(
+      as.data.frame(datasetInput()),
+      text_field = input$textField,
+      docid_field = input$docIdField
+    )
     
     if (is.null(input$selectGroup2)) {
-      
       xdfm = dfm(
         x_corpus,
-        remove = c(stopwords(),uselessWords),
+        remove = c(stopwords('english'), uselessWords),
         tolower = T,
         thesaurus = likeWords,
         verbose = T,
@@ -186,7 +344,7 @@ server = function(input, output) {
     else{
       xdfm = dfm(
         x_corpus,
-        remove = c(stopwords(),uselessWords),
+        remove = c(stopwords('english'), uselessWords),
         tolower = T,
         thesaurus = likeWords,
         verbose = T,
@@ -196,10 +354,9 @@ server = function(input, output) {
       )
     }
   })
-  #### WordCloud
+  ## Output: Plot WordCloud
   output$wordcloud = renderPlot({
-
-   d1 = dCorp()
+    d1 = dCorp()
     
     withProgress(message = 'Building Wordclouds',
                  detail = 'This may take a while...',
@@ -213,7 +370,9 @@ server = function(input, output) {
                      textplot_wordcloud(
                        d1,
                        comparison = T,
-                       max.words = 50,title.size=2)
+                       max.words = 50,
+                       title.size = 2
+                     )
                      
                    }
                    else{
@@ -224,21 +383,48 @@ server = function(input, output) {
   })
   ### Output: Keyness
   output$keyness = renderPlot({
-    d1 = dCorp()
-    withProgress(message = 'Building Wordclouds',
-                 detail = 'This may take a while...',
-                 value = 0,
-                 {
-                   for (i in 1:15) {
-                     incProgress(1 / 50)
-                     Sys.sleep(0.25)
-                   }
-    if(!is.null(input$selectGroup2)){
-      dTemp = textstat_keyness(d1,measure='chi2',sort=T)
-      textplot_keyness(dTemp,show_reference=T,n=15)
+    if (!is.null(input$selectGroup2)) {
+      d1 = dCorp()
+      d1 = dfm_trim(d1, min_count = 2)
+      withProgress(message = 'Building Wordclouds',
+                   detail = 'This may take a while...',
+                   value = 0,
+                   {
+                     for (i in 1:15) {
+                       incProgress(1 / 50)
+                       Sys.sleep(0.25)
+                     }
+                     
+                     dTemp = textstat_keyness(
+                       d1,
+                       measure = 'chi2',
+                       sort = T,
+                       target = input$targetKeyness
+                     )
+                     p = textplot_keyness(dTemp, show_reference = T, n = 10)
+                     p = p + scale_fill_manual(values = c("#00AB8E", "#EE2737")) + theme_hc() +
+                       theme(
+                         axis.title.y = element_blank(),
+                         axis.text.y =
+                           element_blank(),
+                         axis.ticks.y =
+                           element_blank()
+                       )
+                     p
+                     
+                   })
     }
   })
+  
+  ## Output: KWIC
+
+  output$kwicTable=renderDataTable({
+    dtemp = df_corpus()
+    x = kwic(x = dtemp,pattern=input$keyword,window=input$context)
+    x = as.data.table(x)
+    x[,4:6]
   })
+  
 }
 
 # Create Shiny app ----
