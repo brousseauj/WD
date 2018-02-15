@@ -86,7 +86,7 @@ ui <- fluidPage(# App title ----
                     tabPanel(
                       'Keyword in Context',
                       # fluidRow(uiOutput('SelectGroup3')),
-                      fluidRow(column(4,textInput("keyword", "Enter keyword :", "Western Digital")),
+                      fluidRow(column(4,textInput("keyword", "Enter keyword :")),
                       fluidRow(column(4, sliderInput("context", "Enter number of words for context :",
                                                      min = 1, max = 10,
                                                      value = 5))),
@@ -115,27 +115,31 @@ server = function(input, output) {
       return(NULL)
     read.csv(infile$datapath, header = TRUE)
   })
-  
+
   
   d1 = reactive({
+    temp = as.data.table(datasetInput())
+    
     if(is.null(input$selectGroup)){
       if (input$analysisType == 'Topic') {
-        temp <- getTopics(datasetInput(),text_field = input$textField,docid_field = input$docIdField)
+        temp <- getTopics(temp,text_field = input$textField,docid_field = input$docIdField)
       }
       else{
-        temp <- getTerms(datasetInput(),
+        temp <- getTerms(temp,
                          n = input$termsToShow,text_field = input$textField,docid_field = input$docIdField)
       }}
       else{
         if (input$analysisType == 'Topic') {
-          temp <- getTopics(datasetInput(), groups = input$selectGroup,text_field = input$textField,docid_field = input$docIdField)
+          temp <- getTopics(temp, groups = input$selectGroup,text_field = input$textField,docid_field = input$docIdField)
             }
       else{
-      temp <- getTerms(datasetInput(),
+      temp <- getTerms(temp,
                        groups = input$selectGroup,
                        n = input$termsToShow,text_field = input$textField,docid_field = input$docIdField)
     }}
   })
+  
+  
   
   #DF Corpus
   df_corpus = reactive({
@@ -204,18 +208,19 @@ server = function(input, output) {
     )
   })
   
+  ## Select fields for KWIC
+  output$subsetSelect = renderUI({
 
-  # output$subsetSelect = renderUI({
-  # 
-  #   dTemp = d3()
-  #   # Dropdown for selecting groups
-  #   selectizeInput(
-  #     "subsetSelect",
-  #     "Choose your field:",
-  #     options = list(placeholder = 'Select your group:',maxItems=1),
-  #     choices  = nameFields
-  #   )
-  # })
+    dTemp = datasetInput()
+    nameFields = unique(dTemp[[input$selectGroup4]])
+    # Dropdown for selecting groups
+    selectizeInput(
+      "subsetSelect",
+      "Choose your field:",
+      options = list(placeholder = 'Select your group:',maxItems=1),
+      choices  = nameFields
+    )
+  })
   
   #Select number of terms to show for Top Terms
   output$termsToShow =renderUI({
@@ -370,14 +375,14 @@ server = function(input, output) {
                      textplot_wordcloud(
                        d1,
                        comparison = T,
-                       max.words = 50,
-                       title.size = 2
+                       max.words = 20,
+                       title.size = 1
                      )
                      
                    }
                    else{
                      textplot_wordcloud(d1,
-                                        max.words = 50)
+                                        max.words = 20)
                    }
                  })
   })
@@ -418,11 +423,24 @@ server = function(input, output) {
   
   ## Output: KWIC
 
+  # subset data for corpus
+  
+    df_corpus1 <- reactive({
+      df = as.data.table(datasetInput())
+      if(!is.null(input$selectGroup4) & !is.null(input$subsetSelect))
+      {
+        df = df[df[[input$selectGroup4]] %in% input$subsetSelect,]
+      }
+      df
+    })
+  
   output$kwicTable=renderDataTable({
-    dtemp = df_corpus()
+    if(!is.null(input$selectGroup4) & !is.null(input$subsetSelect)){
+    dtemp = df_corpus1()
+    dtemp = corpus(as.data.frame(dtemp),text_field=input$textField,docid_field=input$docIdField)
     x = kwic(x = dtemp,pattern=input$keyword,window=input$context)
     x = as.data.table(x)
-    x[,4:6]
+    x[,4:6]}
   })
   
 }
