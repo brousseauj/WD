@@ -13,6 +13,13 @@
 #   reshape,plotly
 # )
 
+uselessWords=c('na',
+'n',
+'n a',
+'none',
+'western digital',
+'wd')
+
 topics = dictionary(list(
   workLifeBalance = c("work life", "work/life", "worklife"),
   manager = c(
@@ -25,6 +32,8 @@ topics = dictionary(list(
     'supervisers'
   ),
   communication = c("communication", "communicate", 'communications'),
+  benefits = c('health care','benefits','vision','dental','maternity leave','parental leave','paternity leave'),
+  perks = c('perks'),
   family = c("family", 'families'),
   compensation = c(
     "comp",
@@ -53,6 +62,8 @@ likeWords = dictionary(list(
 
 getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), docid_field=1) {
   x1=as.data.table(x)
+  toRemove = is.na(x1[[text_field]])
+  x1 = x1[!toRemove,]
   x = corpus(as.data.frame(x1),text_field = text_field,docid_field = (docid_field))
   x = dfm(x,dictionary=topics)
   if (!is.na(groups)) {
@@ -61,16 +72,7 @@ getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), d
                     groups = groups,
                     scheme = "docfreq")
     group_names = names(y)
-    
-    ## Manipulate named vectors into data.frame and melt to long form
-    
-    ### Handling multiple groups
-    #   Constrained to only 2 factors in groups, anything more will require feature engineering to build a new column for it
-    #   Building a new col will need to be bone pre-analysis
-    ###
-    
-    ## Cleaning Req's
-    # - no NA's
+  
     outPut = list()
     for (i in 1:length(y)) {
       tempd0 = data.frame(as.list(y[i]))
@@ -88,8 +90,8 @@ getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), d
         group1 = groups[1]
         group2 = groups[2]
         
-        tempd0[, Prct := (tempd0[, 2] / nrow(x1[get(group1) == group_names_split[i, 1] &
-                                                  get(group2) == group_names_split[i, 2]])) * 100]
+        tempd0[, Prct := (tempd0[, 2] / nrow(x1[!is.na(get(group1) == group_names_split[i, 1] &
+                                                  get(group2) == group_names_split[i, 2])])) * 100]
         
       }
       else if (length(groups) == 3) {
@@ -110,8 +112,7 @@ getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), d
         
       }
       else{
-        tempd0[, Prct := tempd0[, 2] / nrow(x1[get(groups) == group_names[i]]) *
-                 100]
+        tempd0[, Prct := (tempd0[, 2] / nrow(!is.na(x1[get(groups) == group_names[i]]))*100)]
       }
       tempd0 = melt(tempd0, measure.vars = c('Prct', 'Count'))
       tempd0$group = group_names[i]
@@ -142,6 +143,8 @@ getTerms = function(x,
                     scheme = "docfreq",
                     text_field = length(x),
                     docid_field = 1) {
+  
+  
   if (length(groups) > 3) {
     stop(
       'A max of three groups can be provided. Please build a new column that is a combination of two others to proceed.'
@@ -149,7 +152,8 @@ getTerms = function(x,
   }
   
   x1 = as.data.table(x)
-  x1 = na.omit(x1, cols = groups)
+  toRemove = is.na(x1[[text_field]])
+  x1 = x1[!toRemove,]
   x_corpus = corpus(as.data.frame(x1),
                     text_field = text_field,
                     docid_field = docid_field)
