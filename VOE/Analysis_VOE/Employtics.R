@@ -86,13 +86,10 @@ ui <- fluidPage(# App title ----
                       'Word Clouds',
                       fluidRow(uiOutput('selectGroup2')),
                       fluidRow(plotOutput(
-                        'wordcloud', width = "100%", height = '800'
-                      )),
-                      fluidRow(uiOutput('targetKeyness')),
-                      fluidRow(plotOutput(
-                        'keyness', width = '100%', height = '600'
-                      ))
-                    ),
+                        'wordcloud', width = "100%", height = '800')),
+                      switchInput(inputId = "showKeyness", value = F,label = 'Display Keywords'),
+                      fluidRow(column(4,uiOutput('targetKeyness')),column(4,uiOutput('keynessNumbers'))),
+                      fluidRow(column(10,showOutput("keyness", lib = 'nvd3')))),
                     
                     ## KWIC
                     tabPanel(
@@ -106,7 +103,8 @@ ui <- fluidPage(# App title ----
                       fluidRow(column(4,uiOutput('subsetSelect'))),
                       fluidRow(column(10,DT::dataTableOutput("kwicTable"))))
                     )
-                  ))
+                  )
+                )
                 ))
 
 
@@ -249,34 +247,10 @@ server = function(input, output) {
                                    min = 1, max = 20,
                                    value = 10)))
   })
-  
-  #Select target for Keyness
-  output$targetKeyness = renderUI({
-    dfCorp = dCorp()
-    targetNames = docnames(dfCorp)
-    selectizeInput('targetKeyness',
-                   'Choose Target:',
-                   multiple = T,
-                   choices = targetNames)
-  })
-  
-  #Select Groupings for word clouds
-  output$selectGroup2 = renderUI({
-    colnames <- names(datasetInput())
-    # Dropdown for selecting groups on word Clouds
-    selectizeInput(
-      "selectGroup2",
-      "Choose groupings:",
-      multiple = T,
-      options = list(placeholder = 'Select a max of 1 different fields'),
-      choices  = colnames
-    )
-  })
-  
+
   #Select Groupings for KWIC
   output$selectGroup3 = renderUI({
     colnames <- names(datasetInput())
-    # Dropdown for selecting groups on word Clouds
     selectizeInput(
       "selectGroup3",
       "Choose groupings:",
@@ -349,15 +323,11 @@ server = function(input, output) {
   })
   
   dCorp = reactive({
-    x_corpus = corpus(
-      as.data.frame(datasetInput()),
-      text_field = input$textField,
-      docid_field = input$docIdField
-    )
+  df_corpus = df_corpus()
     
     if (is.null(input$selectGroup2)) {
       xdfm = dfm(
-        x_corpus,
+        df_corpus,
         remove = c(stopwords('english'), uselessWords),
         tolower = T,
         thesaurus = likeWords,
@@ -368,7 +338,7 @@ server = function(input, output) {
     }
     else{
       xdfm = dfm(
-        x_corpus,
+        df_corpus,
         remove = c(stopwords('english'), uselessWords),
         tolower = T,
         thesaurus = likeWords,
@@ -379,65 +349,86 @@ server = function(input, output) {
       )
     }
   })
+  
+  # Word Clouds -------------------------------------------------------------
+  
+  
+  #Select target for Keyness
+  output$targetKeyness = renderUI({
+    if(input$showKeyness==T){
+      dfCorp = dCorp()
+      targetNames = docnames(dfCorp)
+      selectizeInput('targetKeyness',
+                     'Choose Target:',
+                     multiple = T,
+                     choices = targetNames)}
+  })
+  
+  #Select Groupings for word clouds
+  output$selectGroup2 = renderUI({
+    colnames <- names(datasetInput())
+    # Dropdown for selecting groups on word Clouds
+    selectizeInput(
+      "selectGroup2",
+      "Choose groupings:",
+      multiple = T,
+      options = list(placeholder = 'Select a max of 1 different fields'),
+      choices  = colnames
+    )
+  })
+  
   ## Output: Plot WordCloud
   output$wordcloud = renderPlot({
     d1 = dCorp()
     
     withProgress(message = 'Building Wordclouds',
-                 detail = 'This may take a while...',
-                 value = 0,
-                 {
-                   for (i in 1:15) {
-                     incProgress(1 / 50)
-                     Sys.sleep(0.25)
-                   }
-                   if (!is.null(input$selectGroup2)) {
+                 detail = 'This may take a while...',expr = 0)
+                   if (is.null(input$selectGroup2)) {
                      textplot_wordcloud(
                        d1,
-                       comparison = T,
-                       max.words = 20,
-                       title.size = 1
+                       max.words = 15
                      )
                      
                    }
                    else{
                      textplot_wordcloud(d1,
-                                        max.words = 20)
+                                        comparison = T,
+                                        max.words = 15,
+                                        title.size = 1)
                    }
-                 })
+                 
   })
   ### Output: Keyness
-  output$keyness = renderPlot({
-    if (!is.null(input$selectGroup2)) {
+    output$keynessNumbers = renderUI({
+      if (input$showKeyness==T) {
+    sliderInput("keynessNumbers", "Enter number of words to show:",
+              min = 1, max = 10,value = 5)}
+  })
+  
+  output$keyness = renderChart2({
+    if (!is.null(input$selectGroup2) & input$showKeyness==T) {
       d1 = dCorp()
       d1 = dfm_trim(d1, min_count = 2)
-      withProgress(message = 'Building Wordclouds',
-                   detail = 'This may take a while...',
-                   value = 0,
-                   {
-                     for (i in 1:15) {
-                       incProgress(1 / 50)
-                       Sys.sleep(0.25)
-                     }
-                     
-                     dTemp = textstat_keyness(
+
+                     d1 = textstat_keyness(
                        d1,
                        measure = 'chi2',
                        sort = T,
                        target = input$targetKeyness
                      )
-                     p = textplot_keyness(dTemp, show_reference = T, n = 10)
-                     p = p + scale_fill_manual(values = c("#00AB8E", "#EE2737")) + theme_hc() +
-                       theme(
-                         axis.title.y = element_blank(),
-                         axis.text.y =
-                           element_blank(),
-                         axis.ticks.y =
-                           element_blank()
-                       )
-                     p
-                     
-                   })
+                     d1$words = rownames(d1)
+                     d1 = as.data.table(d1)
+                    d1 = d1[1:input$keynessNumbers,]
+                     p = nPlot(
+                       chi2 ~ words,
+                       data = d1,
+                       type = 'multiBarHorizontalChart'
+                     )
+                     p$set(title =  'Keyness')
+                     p$chart(margin = list(left = 100))
+                     p$xAxis(rotateLabels = -45)
+                     p$yAxis(axisLabel = 'Level of Importance (chi2)')
+                   p  
     }
   })
   
