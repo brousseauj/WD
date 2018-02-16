@@ -33,14 +33,7 @@ ui <- fluidPage(# App title ----
                     # Input: Horizontal Line ----
                     tags$hr(),
                     
-                    #Input: Select Terms or Topics
-                    radioButtons(
-                      "analysisType",
-                      "Analysis Type",
-                      choices = c(Topic = "Topic",
-                                  Term = "Terms"),
-                      selected = "Topic"
-                    ),
+                  
                     uiOutput('textField'),
                     uiOutput('docIdField')
                   ),
@@ -54,18 +47,36 @@ ui <- fluidPage(# App title ----
                     ## Plots
                     tabPanel(
                       'Plot',
-                     fluidRow(column(4,radioButtons(
-                        "countType",
-                        "Count Type",
-                        choices = c(Prct = "Prct",
-                                    Count = "Count"),
-                        selected = "Prct"
-                      ))),
+                      
+                      fluidRow(column(
+                        4,
+                        radioButtons(
+                          "analysisType",
+                          "Analysis Type",
+                          choices = c(Topic = "Topic",
+                                      Term = "Terms"),
+                          selected = "Topic"
+                        )),
+                        column(
+                          4,
+                          radioButtons(
+                            "countType",
+                            "Count Type",
+                            choices = c(Prct = "Prct",
+                                        Count = "Count"),
+                            selected = "Prct"
+                          )
+                        )
+                      ), 
                       
                       fluidRow(column(4,uiOutput('selectGroup'))),
                       fluidRow(column(10,showOutput("groupedPlotData", lib = 'nvd3'))),
                       #Input:invert 
-                      fluidRow(column(4,checkboxInput('invert', 'Invert Graph', value = F)),column(4,uiOutput('termsToShow')))),
+                      fluidRow(column(2,checkboxInput('invert', 'Invert Graph', value = F)),
+                              conditionalPanel('analysisType'=='Term',
+                                                column(2,uiOutput('termsToShow')))),
+                      fluidRow(uiOutput('sampleSize1'))
+                      ),
                       #Input: Number of words to show
                       
                     
@@ -181,7 +192,15 @@ server = function(input, output) {
     )
   })
   
-  
+
+# Bar Plots ---------------------------------------------------------------
+
+  # #sample Size Calculation
+  # d1 = 
+  # 
+  # output$sampleSize1 = renderUI({
+  #   
+  # })
   
   #Select groupings for bar plots
   output$selectGroup = renderUI({
