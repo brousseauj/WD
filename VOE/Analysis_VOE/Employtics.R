@@ -14,13 +14,14 @@ needs(
   shiny,
   rCharts,
   ggthemes,
-  shinyWidgets,DT
+  shinyWidgets,DT,shinythemes
 )
 options(stringsAsFactors = F)
 source('~/Documents/Git Clones/WD/VOE/getTopics_Terms.R')
 
 # Define UI for data upload app ----
 ui <- fluidPage(# App title ----
+                theme = shinytheme('flatly'),
                 titlePanel("Employtics"),
                 
                 # Sidebar layout with input and output definitions ----
@@ -164,7 +165,7 @@ server = function(input, output) {
   
   # Raw data view
   
-  output$table = DT::renderDataTable(datasetInput(), options = list(scrollX = TRUE))
+  output$table = DT::renderDataTable(datasetInput()[2:length(datasetInput())], options = list(scrollX = TRUE))
   
   # Text Field
   output$textField = renderUI({
