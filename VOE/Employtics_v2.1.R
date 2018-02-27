@@ -418,6 +418,7 @@ server = function(input, output) {
           y = y[, 4:6]
           y$Verbatims = do.call('paste', y)
           y = y[, !c(1:3)]
+          y = unique(y)
         }
         else{
           ## Term + Group
@@ -436,6 +437,7 @@ server = function(input, output) {
             y = y[, 4:6]
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
+            y = unique(y)
 
           }
           else if (length(input$group1) == 2) {
@@ -460,6 +462,7 @@ server = function(input, output) {
             y = y[, 4:6]
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
+            y = unique(y)
 
           }
           else if (length(input$group1) == 3) {
@@ -485,6 +488,7 @@ server = function(input, output) {
             y = y[, 4:6]
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
+            y = unique(y)
           }
           
         }
@@ -504,7 +508,8 @@ server = function(input, output) {
           y = y[, 4:6]
           y$Verbatims = do.call('paste', y)
           y = y[, !c(1:3)]
-          print(d2[[1]])
+          y = unique(y)
+          
         }
         else{
           ## Topics + Groups
@@ -523,6 +528,7 @@ server = function(input, output) {
             y = y[, 4:6]
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
+            y = unique(y)
             
           }
           else if (length(input$group1) == 2) {
@@ -547,6 +553,7 @@ server = function(input, output) {
             y = y[, 4:6]
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
+            y = unique(y)
             
           }
           else if (length(input$group1) == 3) {
@@ -572,6 +579,7 @@ server = function(input, output) {
             y = y[, 4:6]
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
+            y = unique(y)
             
           }
         }
