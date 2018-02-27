@@ -44,43 +44,7 @@ ui <- fluidPage(# App title ----
                   
                   # Main panel for displaying outputs ----
                   mainPanel(tabsetPanel(
-                    
-                    ## Table View
-                    # tabPanel('Raw Data View', DT::dataTableOutput("table")),
-                    
-                    # ## Plots
-                    # tabPanel(
-                    #   'Plot',
-                    #   
-                    #   fluidRow(column(
-                    #     4,
-                    #     radioButtons(
-                    #       "analysisType",
-                    #       "Analysis Type",
-                    #       choices = c(Themes = "Topic",
-                    #                   Term = "Terms"),
-                    #       selected = "Topic"
-                    #     )),
-                    #     column(
-                    #       4,
-                    #       radioButtons(
-                    #         "countType",
-                    #         "Count Type",
-                    #         choices = c(Prct = "Prct",
-                    #                     Count = "Count"),
-                    #         selected = "Prct"
-                    #       )
-                    #     )
-                    #   ), 
-                    #   
-                    #   fluidRow(column(4,uiOutput('selectGroup'))),
-                    #   fluidRow(column(10,showOutput("groupedPlotData", lib = 'nvd3'))),
-                    #   #Input:invert 
-                    #   fluidRow(column(2,checkboxInput('invert', 'Invert Graph', value = F)),
-                    #           conditionalPanel('analysisType'=='Term',
-                    #                             column(2,uiOutput('termsToShow')))),
-                    #   fluidRow(uiOutput('sampleSize1'))
-                    #   ),
+                  
                    
                     tabPanel(
                       'Key Words',
@@ -97,23 +61,25 @@ ui <- fluidPage(# App title ----
                       column(4, uiOutput('varType'))),
                       fluidRow( column(4, uiOutput('group1')), column(4,uiOutput('numKeywords')
                       )),
-                    fluidRow(plotlyOutput('keywords'))
-                  ), 
+                    fluidRow(plotlyOutput('keywords')),
+                    fluidRow(uiOutput('context')),
+                    fluidRow(DT::dataTableOutput("table1"))
+                  ) 
                     
                    
                     
-                    ## KWIC
-                    tabPanel(
-                      'Keyword in Context',
-                      # fluidRow(uiOutput('SelectGroup3')),
-                      fluidRow(column(4,textInput("keyword", "Enter keyword :")),
-                      fluidRow(column(4, sliderInput("context", "Enter number of words for context :",
-                                                     min = 1, max = 10,
-                                                     value = 5))),
-                      fluidRow(column(4,uiOutput('selectGroup4'))),
-                      fluidRow(column(4,uiOutput('subsetSelect'))),
-                      fluidRow(column(10,DT::dataTableOutput("kwicTable"))))
-                    )
+                    # ## KWIC
+                    # tabPanel(
+                    #   'Keyword in Context',
+                    #   # fluidRow(uiOutput('SelectGroup3')),
+                    #   fluidRow(column(4,textInput("keyword", "Enter keyword :")),
+                    #   fluidRow(column(4, sliderInput("context", "Enter number of words for context :",
+                    #                                  min = 1, max = 10,
+                    #                                  value = 5))),
+                    #   fluidRow(column(4,uiOutput('selectGroup4'))),
+                    #   fluidRow(column(4,uiOutput('subsetSelect'))),
+                    #   fluidRow(column(10,DT::dataTableOutput("kwicTable"))))
+                    # )
                   )
                 )
                 ))
@@ -134,8 +100,39 @@ server = function(input, output) {
     infile <- input$FileInput
     if (is.null(infile))
       return(NULL)
-    read.csv(infile$datapath, header = TRUE)
+    read.csv(infile$datapath, header = TRUE,check.names = F)
+    
   })
+  
+  # Text Field
+  output$textField = renderUI({
+    if(!is.null(datasetInput())){
+    temp = datasetInput()
+
+    selectizeInput(
+      "textField",
+      "Which column contains the text you want to analyze?",
+      multiple = T,
+      options = list(placeholder = 'Select one column',maxItems=1),
+      choices  = colnames(temp)
+    )}
+  })
+  
+  # DocID Field
+  output$docIdField = renderUI({
+    if(!is.null(datasetInput())){
+      
+    temp = datasetInput()
+    # Dropdown for selecting groups
+    selectizeInput(
+      "docIdField",
+      "Which column contains the document ID field? (usually the Employee ID field)",
+      multiple = T,
+      options = list(placeholder = 'Select one column',maxItems=1),
+      choices  = colnames(temp)
+    )}
+  })
+
 
   
   d1 = reactive({
@@ -173,31 +170,7 @@ server = function(input, output) {
   })
   
   
-  # Text Field
-  output$textField = renderUI({
-    colnames <- names(datasetInput())
-    # Dropdown for selecting groups
-    selectizeInput(
-      "textField",
-      "Which column contains the text you want to analyze?",
-      multiple = T,
-      options = list(placeholder = 'Select one column',maxItems=1),
-      choices  = colnames
-    )
-  })
-  
-  # DocID Field
-  output$docIdField = renderUI({
-    colnames <- names(datasetInput())
-    # Dropdown for selecting groups
-    selectizeInput(
-      "docIdField",
-      "Which column contains the document ID field? (usually the Employee ID field)",
-      multiple = T,
-      options = list(placeholder = 'Select one column',maxItems=1),
-      choices  = colnames
-    )
-  })
+ 
   
 
 # New key word -----------------------------------------------------------
@@ -233,34 +206,79 @@ server = function(input, output) {
     
     ## Data and Plot for keywords
     
+    d0 = reactive({
+      if (!is.null(input$FileInput) &&
+          !is.null(input$textField) && !is.null(input$docIdField)) {
+        if (input$analysisType == 'Term') {
+          ## Term + No Group
+          if (is.null(input$group1)) {
+            d0 = d1()[variable == input$varType,]
+            d0$Term = factor(d0$Term, levels = d0$Term[order(d0$value)])
+            key <- row.names(d0)
+            d0 <- data.frame(d0, key)
+          }
+          else{
+            ## Term + Group
+            d0 = df_corpus()
+            d0 = dfm(
+              d0,
+              remove = c(stopwords(), uselessWords),
+              tolower = T,
+              groups = input$group1,
+              thesaurus = likeWords,
+              verbose = T,
+              remove_punct = T,
+              remove_numbers = T
+            )
+            d0 = getKeyness(d0, numOut = input$numKeywords)
+            d0$Term = factor(d0$Term, levels = d0$Term[order(d0$chi2)])
+            key <- row.names(d0)
+            d0 <- data.frame(d0, key)
+          }
+        }
+        else{
+          ## Topics No Groups
+          if (is.null(input$group1)) {
+            d0 = d1()[variable == input$varType,]
+            d0$Topic = factor(d0$Topic, levels = d0$Topic[order(d0$value)])
+            key <- row.names(d0)
+            d0 <- data.frame(d0, key)
+          }
+          else{
+            ## Topics + Groups
+            d0 = d1()[variable == input$varType,]
+            
+            d0 = d0[order(d0$Topic, value), ]
+            key <- row.names(d0)
+            d0 <- data.frame(d0, key)
+          }
+        }
+      }
+    })
+    
+    
     output$keywords = renderPlotly({
-      if(!FileInput)
+      d0 = d0()
+      if(!is.null(input$FileInput) && !is.null(input$textField) && !is.null(input$docIdField)){
       if (input$analysisType == 'Term') {
         ## Term + No Group
         if (is.null(input$group1)) {
-          temp = d1()[variable == input$varType, ]
-          temp$Term = factor(temp$Term, levels = temp$Term[order(temp$value)])
-          p = ggplot(temp, aes(Term, value)) + geom_point() + coord_flip() +
-            theme_minimal() + xlab('') + ylab(ifelse(input$varType=='Prct','% of Comments','Number of Comments'))
+          p = ggplot(d0, aes(Term, value,key=key)) +
+            geom_point(
+              aes(colour = value),
+              shape = 16,
+              size = 3,
+              show.legend = F
+            ) +
+            coord_flip() +
+            theme_minimal() +
+            xlab('') + ylab(ifelse(input$varType=='Prct','% of Comments','Number of Comments'))
           ggplotly(p)
         }
         
         else{
           ## Term + Group
-          d0 = df_corpus()
-          d0 = dfm(
-            d0,
-            remove = c(stopwords(), uselessWords),
-            tolower = T,
-            groups = input$group1,
-            thesaurus = likeWords,
-            verbose = T,
-            remove_punct = T,
-            remove_numbers = T
-          )
-          d0 = getKeyness(d0, numOut = input$numKeywords)
-          d0$Term = factor(d0$Term, levels = d0$Term[order(d0$chi2)])
-          p = ggplot(d0, aes(Term, chi2)) +
+          p = ggplot(d0, aes(Term, chi2,key=key,label2 = group)) +
             geom_point(
               aes(colour = chi2),
               shape = 16,
@@ -268,7 +286,7 @@ server = function(input, output) {
               show.legend = F
             ) +
             scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-            facet_wrap(~ groupNames,scales='free') + coord_flip() +
+            facet_wrap(~ group,scales='free') + coord_flip() +
             ylab('Importance Level (Chi2)') + xlab('') +
             theme_minimal()
           ggplotly(p)
@@ -277,9 +295,7 @@ server = function(input, output) {
       else{
         ## Topics No Groups
         if (is.null(input$group1)) {
-          d0 = d1()[variable == input$varType, ]
-          d0$Topic = factor(d0$Topic, levels = d0$Topic[order(d0$value)])
-          p = ggplot(d0, aes(Topic, value)) +
+          p = ggplot(d0, aes(Topic, value,key=key)) +
             geom_point(
               aes(colour = value),
               shape = 16,
@@ -293,9 +309,7 @@ server = function(input, output) {
           ggplotly(p)
         }
         else{
-          ## Topics + Groups
-          d0 = d1()[variable == input$varType, ]
-          p = ggplot(d0, aes(Topic, value)) +
+          p = ggplot(d0, aes(Topic, value,key=key)) +
             geom_point(
               aes(colour = value),
               shape = 16,
@@ -306,12 +320,125 @@ server = function(input, output) {
             coord_flip() +facet_wrap(~ group)+
             ylab(ifelse(input$varType=='Prct','% of Comments','Number of Comments')) + xlab('') +
             theme_minimal()
-          ggplotly(p)
+          ggplotly(p) %>% layout(dragmode='select')
         }
       }
-      
+      }
     })
 
+    output$selection <- renderPrint({
+      s <- event_data("plotly_click")
+      data.frame(s)
+    })
+
+    selection2 <- reactive({
+      s <- event_data("plotly_click")
+      cat("You selected: \n\n")
+      df <- data.frame(s)
+    })
+    
+
+     output$context = renderUI({
+       if(!is.null(input$group1)){
+       sliderInput("context", "Enter number of words for context :",
+                                   min = 1, max = 50,
+                                   value = 250)}
+     })
+    
+    output$table1 = renderDT({
+      selection2 = selection2()
+      d0 = d0()
+      d2 <- d0 %>% filter(key == selection2$key)
+              if (!is.null(input$FileInput) &&
+            !is.null(input$textField) && !is.null(input$docIdField)) {
+          if (input$analysisType == 'Term') {
+            ## Term + No Group
+            if (is.null(input$group1)) {
+              dtemp=df_corpus()
+              y= kwic(x = dtemp,pattern = d2[[1]],window = input$context,
+                      valuetype = 'regex',case_insensitive = T)
+               y = as.data.table(y)
+               y = y[,4:6]
+              y$new = do.call('paste',y)
+              y = y[,!c(1:3)]
+            }
+            else{
+              ## Term + Group
+                dtemp = df_corpus()
+                if(length(input$group1)==1){
+                  dtemp = corpus_subset(x=dtemp,subset=get(input$group1)==d2$group)
+                  y = kwic(x = dtemp,pattern = d2$Term,window = input$context,
+                           valuetype = 'regex',case_insensitive = T)
+                  y = as.data.table(y)
+                  y = y[,4:6]
+                  y$new = do.call('paste',y)
+                  y = y[,!c(1:3)]
+                  
+                }
+                else if (length(input$group1)==2){
+                  # groupNames = 
+                    selection2()$group
+                  
+                  # groupNames= strsplit(groupNames,"[.]")
+                  # dtemp = corpus_subset(x=dtemp,subset=get(input$group1[1])==groupNames[1] &
+                  #                         get(input$group1[2])==groupNames[2])
+                  # y = kwic(x = dtemp,pattern = d2$Term,window = input$context,
+                  #          valuetype = 'regex',case_insensitive = T)
+                  # y = as.data.table(y)
+                  # y = y[,4:6]
+                  # y$new = do.call('paste',y)
+                  # y = y[,!c(1:3)]
+                  # 
+                }
+                else if (length(input$group1)==3){
+                  groupNames = selection2()$group
+                  groupNames= strsplit(groupNames,"[.]")
+                  
+                  dtemp = corpus_subset(x=dtemp,
+                                   subset=get(input$group1[1])==groupNames[1] & 
+                                          get(input$group1[2])==groupNames[2] &
+                                          get(input$group1[3])==groupNames[3])
+                  y = kwic(x = dtemp,pattern = d2$Term,window = input$context,
+                           valuetype = 'regex',case_insensitive = T) 
+                  y = as.data.table(y)
+                  y = y[,4:6]
+                  y$new = do.call('paste',y)
+                  y = y[,!c(1:3)]
+                  
+                }
+
+            }
+          }
+          else{
+            ## Topics No Groups
+            if (is.null(input$group1)) {
+                d2
+            }
+            else{
+              ## Topics + Groups
+                d2
+            }
+          }
+        }
+
+
+
+     }) 
+    #
+    #
+    #
+    # output$kwicTable=renderDataTable({
+    #   if(!is.null(input$selectGroup4) & !is.null(input$subsetSelect)){
+    #     dtemp = df_corpus1()
+    #     dtemp = corpus(as.data.frame(dtemp),text_field=input$textField,docid_field=input$docIdField)
+    #     x = kwic(x = dtemp,pattern=input$keyword,window=input$context)
+    #     x = as.data.table(x)
+    #     x[,4:6]}
+    # })
+
+    
+    
+    
 #  end new wordcloud ------------------------------------------------------
 
 
