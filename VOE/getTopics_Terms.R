@@ -18,7 +18,7 @@ uselessWords=c('na',
 'n a',
 'none',
 'western digital',
-'wd')
+'wd','nil','comment','seem','like','ot','sir')
 
 topics = dictionary(list(
   workLifeBalance = c("work life", "work/life", "worklife"),
@@ -58,7 +58,7 @@ likeWords = dictionary(list(
   questions = c('questions', 'question')
 ))
 
-# x = read_xlsx('~/Desktop/wdps7a_flat_file (2).xlsx')
+ # x = read.csv('~/Desktop/wdps7a_flat_file_abbr.csv')
 
 getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), docid_field=1) {
   x1=as.data.table(x)
@@ -247,7 +247,20 @@ getTerms = function(x,
   return(y)
 }
 
+getKeyness = function(t1,numOut=30){
+  outp=list()
+  for ( i in 1:length(docnames(t1))){
+    y=textstat_keyness(t1,target = docnames(t1)[[i]])
+    y$group = docnames(t1)[i]
+    y = y[1:numOut,]
+    outp = rbind(y,outp)
+    
+  }
+  outp$Term = row.names(outp)
+  return(outp)
+}
+
 # 
-# test = getTerms(df,groups='Gender',n=100)
+# test = getTerms(x,groups='Gender',n=100)
 # # test = getTopics(x,groups = c('Region','Gender'))
 
