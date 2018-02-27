@@ -1,3 +1,4 @@
+
 library(needs)
 needs(
   stringr,
@@ -71,10 +72,6 @@ ui <- fluidPage(
         fluidRow(uiOutput('context')),
         fluidRow(DT::dataTableOutput("table1"))
       )
-<<<<<<< HEAD
-
-
-=======
       
       
       
@@ -90,7 +87,6 @@ ui <- fluidPage(
       #   fluidRow(column(4,uiOutput('subsetSelect'))),
       #   fluidRow(column(10,DT::dataTableOutput("kwicTable"))))
       # )
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
     ))
   )
 )
@@ -266,7 +262,10 @@ server = function(input, output) {
           d0 = getKeyness(d0, numOut = input$numKeywords)
           d0$Term = factor(d0$Term, levels = d0$Term[order(d0$chi2)])
           key <- seq(1:nrow(d0))
+          d0$Term = gsub('[[:digit:]]+', '', d0$Term)
           d0 <- data.frame(d0, key)
+          
+          
         }
       }
       else{
@@ -288,7 +287,7 @@ server = function(input, output) {
       }
     }
   })
-
+  
   
   output$keywords = renderPlotly({
     d0 = d0()
@@ -324,11 +323,7 @@ server = function(input, output) {
               show.legend = F
             ) +
             scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-<<<<<<< HEAD
-            facet_wrap( ~ group, scales = 'free') + coord_flip() +ylim(c(0,max((d0$chi2*.1)+d0$chi2)))+
-=======
             facet_wrap( ~ group, scales = 'free') + coord_flip() +
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
             ylab('Importance Level (Chi2)') + xlab('') +
             theme_minimal()
           ggplotly(p)
@@ -345,11 +340,7 @@ server = function(input, output) {
               show.legend = F
             ) +
             scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-<<<<<<< HEAD
-            coord_flip() +ylim(c(0,max((d0$value*.1)+d0$value)))+
-=======
             coord_flip() +
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
             ylab(ifelse(
               input$varType == 'Prct',
               '% of Comments',
@@ -367,11 +358,7 @@ server = function(input, output) {
               show.legend = F
             ) +
             scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-<<<<<<< HEAD
-            coord_flip() + facet_wrap( ~ group,scales='free') +ylim(c(0,max((d0$value*.1)+d0$value)))+
-=======
             coord_flip() + facet_wrap( ~ group) +
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
             ylab(ifelse(
               input$varType == 'Prct',
               '% of Comments',
@@ -429,12 +416,8 @@ server = function(input, output) {
           )
           y = as.data.table(y)
           y = y[, 4:6]
-          y$new = do.call('paste', y)
+          y$Verbatims = do.call('paste', y)
           y = y[, !c(1:3)]
-<<<<<<< HEAD
-=======
-          datatable(y,options = list(searchHighlight=T,search = list(search=d2[[1]])))
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
         }
         else{
           ## Term + Group
@@ -451,14 +434,9 @@ server = function(input, output) {
             )
             y = as.data.table(y)
             y = y[, 4:6]
-            y$new = do.call('paste', y)
+            y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
-<<<<<<< HEAD
-       
-=======
-            datatable(y,options = list(searchHighlight=T,search = list(search=d2[[1]])))
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
-            
+
           }
           else if (length(input$group1) == 2) {
             groupNames = (d0$group[key == selection2()$key])
@@ -480,14 +458,9 @@ server = function(input, output) {
             )
             y = as.data.table(y)
             y = y[, 4:6]
-            y$new = do.call('paste', y)
+            y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
-<<<<<<< HEAD
 
-=======
-            datatable(y,options = list(searchHighlight=T,search = list(search=d2[[1]])))
-            
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
           }
           else if (length(input$group1) == 3) {
             groupNames = (d0$group[key == selection2()$key])
@@ -510,12 +483,8 @@ server = function(input, output) {
             )
             y = as.data.table(y)
             y = y[, 4:6]
-            y$new = do.call('paste', y)
+            y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
-<<<<<<< HEAD
-=======
-            datatable(y,options = list(searchHighlight=T,search = list(search=d2[[1]])))
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
           }
           
         }
@@ -533,13 +502,9 @@ server = function(input, output) {
           )
           y = as.data.table(y)
           y = y[, 4:6]
-          y$new = do.call('paste', y)
+          y$Verbatims = do.call('paste', y)
           y = y[, !c(1:3)]
           print(d2[[1]])
-<<<<<<< HEAD
-=======
-          datatable(y,options = list(searchHighlight=T,search = list(search=d2[[1]])))
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
         }
         else{
           ## Topics + Groups
@@ -556,13 +521,9 @@ server = function(input, output) {
             )
             y = as.data.table(y)
             y = y[, 4:6]
-            y$new = do.call('paste', y)
+            y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
-<<<<<<< HEAD
-
-=======
             
->>>>>>> c6f5169df786f4896d3fdfaf7d327f3cc74c853f
           }
           else if (length(input$group1) == 2) {
             groupNames = (d0$group[key == selection2()$key])
@@ -584,7 +545,7 @@ server = function(input, output) {
             )
             y = as.data.table(y)
             y = y[, 4:6]
-            y$new = do.call('paste', y)
+            y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             
           }
@@ -609,7 +570,7 @@ server = function(input, output) {
             )
             y = as.data.table(y)
             y = y[, 4:6]
-            y$new = do.call('paste', y)
+            y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             
           }
