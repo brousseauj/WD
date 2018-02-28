@@ -28,6 +28,10 @@ source('~/Documents/Git Clones/WD/VOE/getTopics_Terms.R')
 
 # Define UI for data upload app ----
 ui <- fluidPage(
+  tags$head(tags$style('#text1{font-family: "Cera PRO Regular";
+                                 }'
+  )
+  ),
   tags$style(type="text/css",
              ".shiny-output-error { visibility: hidden; }",
              ".shiny-output-error:before { visibility: hidden; }"
@@ -70,7 +74,7 @@ ui <- fluidPage(
             "Analysis Type",
             choices = c(Themes = "Themes",
                         Term = "Term"),
-            selected = "Themes"
+            selected = "Term"
           )
         ),
         column(4, uiOutput('varType'))),
@@ -582,7 +586,7 @@ server = function(input, output) {
       "Enter number of words to Show :",
       min = 1,
       max = 200,
-      value = 50
+      value = 100
     )
   })
   output$group2 = renderUI({
@@ -627,7 +631,7 @@ server = function(input, output) {
         remove_numbers = T
       )
       par(mar = rep(1, 4))
-      textplot_wordcloud(x,comparison=T,max.words = input$numKeywords2,scale=c(5, .2),title.size=2)
+      textplot_wordcloud(x,comparison=T,max.words = input$numKeywords2,scale=c(8, .2),title.size=2)
 
     }
   })
