@@ -54,6 +54,13 @@ ui <- fluidPage(
     
     # Main panel for displaying outputs ----
     mainPanel(tabsetPanel(
+      
+      tabPanel(
+        'Snap Shot',
+        fluidRow(column(4, uiOutput('group2')), column(4, uiOutput('numKeywords2'))),
+        fluidRow(plotOutput(
+          'wordcloud', width = "100%", height = '800'))
+      ),
       tabPanel(
         'Understand Why',
         fluidRow(column(
@@ -70,26 +77,11 @@ ui <- fluidPage(
         fluidRow(column(4, uiOutput('group1')), column(4, uiOutput('numKeywords'))),
         fluidRow(plotlyOutput('keywords')),
         fluidRow(uiOutput('context')),
-        fluidRow(DT::dataTableOutput("table1"))
-      )
-      
-      
-      
-      # ## KWIC
-      # tabPanel(
-      #   'Keyword in Context',
-      #   # fluidRow(uiOutput('SelectGroup3')),
-      #   fluidRow(column(4,textInput("keyword", "Enter keyword :")),
-      #   fluidRow(column(4, sliderInput("context", "Enter number of words for context :",
-      #                                  min = 1, max = 10,
-      #                                  value = 5))),
-      #   fluidRow(column(4,uiOutput('selectGroup4'))),
-      #   fluidRow(column(4,uiOutput('subsetSelect'))),
-      #   fluidRow(column(10,DT::dataTableOutput("kwicTable"))))
-      # )
-    ))
+        fluidRow(DT::dataTableOutput("table1")))
+
+    )))
   )
-)
+
 
 
 ###                         ####
@@ -199,11 +191,6 @@ server = function(input, output) {
   })
   
   
-  
-  
-  
-  # New key word -----------------------------------------------------------
-  
   output$varType = renderUI({
     radioButtons(
       "varType",
@@ -218,7 +205,7 @@ server = function(input, output) {
       "Enter number of words to Show :",
       min = 1,
       max = 20,
-      value = 5
+      value = 10
     )
   })
   output$group1 = renderUI({
@@ -260,7 +247,8 @@ server = function(input, output) {
             remove_numbers = T
           )
           d0 = getKeyness(d0, numOut = input$numKeywords)
-          d0$Term = factor(d0$Term, levels = d0$Term[order(d0$chi2)])
+          d0$Term = d0$feature
+          d0$Term = as.character(d0$Term)
           key <- seq(1:nrow(d0))
           d0$Term = gsub('[[:digit:]]+', '', d0$Term)
           d0 <- data.frame(d0, key)
@@ -296,7 +284,7 @@ server = function(input, output) {
       if (input$analysisType == 'Term') {
         ## Term + No Group
         if (is.null(input$group1)) {
-          p = ggplot(d0, aes(Term, value, key = key)) +
+          p = ggplot(d0, aes(reorder(Term,value), value, key = key)) +
             geom_point(
               aes(),
               shape = 16,
@@ -315,7 +303,7 @@ server = function(input, output) {
         
         else{
           ## Term + Group
-          p = ggplot(d0, aes(Term, chi2, key = key, key2 = group)) +
+          p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key, key2 = group)) +
             geom_point(
               aes(colour = chi2),
               shape = 16,
@@ -585,10 +573,64 @@ server = function(input, output) {
         }
       }
     }
-    
-    
-    
+
   })
+  
+  output$numKeywords2 = renderUI({
+    sliderInput(
+      "numKeywords2",
+      "Enter number of words to Show :",
+      min = 1,
+      max = 200,
+      value = 50
+    )
+  })
+  output$group2 = renderUI({
+    colnames <- names(datasetInput())
+    # Dropdown for selecting groups on word Clouds
+    selectizeInput(
+      "group2",
+      "Choose groupings:",
+      multiple = T,
+      options = list(placeholder = 'Select fields', maxItems = 3),
+      choices  = colnames
+    )
+  })
+  
+  output$wordcloud = renderPlot({
+    if(is.null(input$group2)){
+
+        d1 = df_corpus()
+        x = dfm(
+          d1,
+          remove = c(stopwords(), uselessWords),
+          tolower = T,
+          thesaurus = likeWords,
+          verbose = T,
+          remove_punct = T,
+          remove_numbers = T
+        )
+        textplot_wordcloud(x,max.words = input$numKeywords2,ordered.colors=T,use.r.layout=F,scale=c(10, .2),colors = "#00AB8E")
+
+    }
+    else{
+      d1 = df_corpus()
+      x = dfm(
+        d1,
+        remove = c(stopwords(), uselessWords),
+        tolower = T,
+        groups = input$group2,
+        thesaurus = likeWords,
+        verbose = T,
+        remove_punct = T,
+        remove_numbers = T
+      )
+      
+      textplot_wordcloud(x,comparison=T,max.words = input$numKeywords2,scale=c(10, .2))
+
+    }
+  })
+  
 }
 
 

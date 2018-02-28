@@ -160,7 +160,7 @@ getTerms = function(x,
                     docid_field = docid_field)
   x = dfm(
     x_corpus,
-    remove = c(stopwords(), 'na', 'n', 'n a', 'none', 'western digital', 'wd'),
+    remove = c(stopwords(), uselessWords),
     tolower = T,
     thesaurus = likeWords,
     verbose = T,
