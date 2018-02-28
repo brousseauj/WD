@@ -13,6 +13,7 @@ needs(
   reshape,
   plotly,
   shiny,
+  rCharts,
   ggthemes,
   shinyjs,
   shinyWidgets,
@@ -74,6 +75,18 @@ ui <- fluidPage(
       
       
       
+      # ## KWIC
+      # tabPanel(
+      #   'Keyword in Context',
+      #   # fluidRow(uiOutput('SelectGroup3')),
+      #   fluidRow(column(4,textInput("keyword", "Enter keyword :")),
+      #   fluidRow(column(4, sliderInput("context", "Enter number of words for context :",
+      #                                  min = 1, max = 10,
+      #                                  value = 5))),
+      #   fluidRow(column(4,uiOutput('selectGroup4'))),
+      #   fluidRow(column(4,uiOutput('subsetSelect'))),
+      #   fluidRow(column(10,DT::dataTableOutput("kwicTable"))))
+      # )
     ))
   )
 )
@@ -205,7 +218,7 @@ server = function(input, output) {
       "Enter number of words to Show :",
       min = 1,
       max = 20,
-      value = 10
+      value = 5
     )
   })
   output$group1 = renderUI({
@@ -247,13 +260,10 @@ server = function(input, output) {
             remove_numbers = T
           )
           d0 = getKeyness(d0, numOut = input$numKeywords)
-          d0$Term = d0$feature
-          d0$Term = as.character(d0$Term)
+          d0$Term = factor(d0$Term, levels = d0$Term[order(d0$chi2)])
           key <- seq(1:nrow(d0))
           d0$Term = gsub('[[:digit:]]+', '', d0$Term)
           d0 <- data.frame(d0, key)
-          print('----RAW D0----')
-          print(d0)
           
           
         }
@@ -305,8 +315,7 @@ server = function(input, output) {
         
         else{
           ## Term + Group
-          
-          p = ggplot(d0, aes(reorder(Term,chi2), chi2, key = key, key2 = group)) +
+          p = ggplot(d0, aes(Term, chi2, key = key, key2 = group)) +
             geom_point(
               aes(colour = chi2),
               shape = 16,
@@ -389,7 +398,7 @@ server = function(input, output) {
     selection2 = selection2()
     d0 = d0()
     d2 <- d0 %>% filter(key == selection2$key)
-    print(d2)
+    
     d2 = as.data.table(d2, stringsAsFactors = F)
     if (!is.null(input$FileInput) &&
         !is.null(input$textField) &&
@@ -432,8 +441,7 @@ server = function(input, output) {
 
           }
           else if (length(input$group1) == 2) {
-            
-            groupNames = d0$group[d0$key == selection2()$key]
+            groupNames = (d0$group[key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
             
             dtemp = corpus_subset(
@@ -442,7 +450,7 @@ server = function(input, output) {
                 groupNames[[1]][1] &
                 get(input$group1[[2]]) == groupNames[[1]][2]
             )
-            print(d2$Term)
+            
             y = kwic(
               x = dtemp,
               pattern = d2$Term,
@@ -458,7 +466,7 @@ server = function(input, output) {
 
           }
           else if (length(input$group1) == 3) {
-            groupNames = d0$group[d0$key == selection2()$key]
+            groupNames = (d0$group[key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
             
             dtemp = corpus_subset(
@@ -524,7 +532,7 @@ server = function(input, output) {
             
           }
           else if (length(input$group1) == 2) {
-            groupNames = (d0$group[d0$key == selection2()$key])
+            groupNames = (d0$group[key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
             
             dtemp = corpus_subset(
