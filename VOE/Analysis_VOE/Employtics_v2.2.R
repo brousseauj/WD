@@ -59,7 +59,7 @@ ui <- fluidPage(
         'Snap Shot',
         fluidRow(column(4, uiOutput('group2')), column(4, uiOutput('numKeywords2'))),
         fluidRow(plotOutput(
-          'wordcloud', width = "100%", height = '800'))
+          'wordcloud', width = "800px",height='600px'))
       ),
       tabPanel(
         'Understand Why',
@@ -610,7 +610,8 @@ server = function(input, output) {
           remove_punct = T,
           remove_numbers = T
         )
-        textplot_wordcloud(x,max.words = input$numKeywords2,ordered.colors=T,use.r.layout=F,scale=c(10, .2),colors = "#00AB8E")
+        par(mar = rep(0, 4))
+        textplot_wordcloud(x,max.words = input$numKeywords2,use.r.layout=F,scale=c(10, .2),colors = "#00AB8E")
 
     }
     else{
@@ -625,8 +626,8 @@ server = function(input, output) {
         remove_punct = T,
         remove_numbers = T
       )
-      
-      textplot_wordcloud(x,comparison=T,max.words = input$numKeywords2,scale=c(10, .2))
+      par(mar = rep(1, 4))
+      textplot_wordcloud(x,comparison=T,max.words = input$numKeywords2,scale=c(5, .2),title.size=2)
 
     }
   })
