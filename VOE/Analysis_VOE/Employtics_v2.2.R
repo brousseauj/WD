@@ -74,7 +74,7 @@ ui <- fluidPage(
             "Analysis Type",
             choices = c(Themes = "Themes",
                         Term = "Term"),
-            selected = "Term"
+            selected = "Themes"
           )
         ),
         column(4, uiOutput('varType'))),
@@ -433,7 +433,7 @@ server = function(input, output) {
 
           }
           else if (length(input$group1) == 2) {
-            groupNames = (d0$group[key == selection2()$key])
+            groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
             
             dtemp = corpus_subset(
@@ -458,7 +458,7 @@ server = function(input, output) {
 
           }
           else if (length(input$group1) == 3) {
-            groupNames = (d0$group[key == selection2()$key])
+            groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
             
             dtemp = corpus_subset(
@@ -524,7 +524,7 @@ server = function(input, output) {
             
           }
           else if (length(input$group1) == 2) {
-            groupNames = (d0$group[key == selection2()$key])
+            groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
             
             dtemp = corpus_subset(
@@ -549,7 +549,7 @@ server = function(input, output) {
             
           }
           else if (length(input$group1) == 3) {
-            groupNames = (d0$group[key == selection2()$key])
+            groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
             
             dtemp = corpus_subset(
