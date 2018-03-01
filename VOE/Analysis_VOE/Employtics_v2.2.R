@@ -98,7 +98,9 @@ ui <- fluidPage(
 server = function(input, output) {
   options(shiny.maxRequestSize = 60 * 1024 ^ 2)
   
-  # Raw Data Input
+  
+  # Raw Data Input ----------------------------------------------------------
+  
   datasetInput <- reactive({
     infile <- input$FileInput
     if (is.null(infile))
@@ -106,14 +108,18 @@ server = function(input, output) {
     read.csv(infile$datapath,
              header = TRUE,
              check.names = F)
+
     
   })
   
-  # Text Field
+  # Text Field --------------------------------------------------------------
+  
+  
   output$textField = renderUI({
     if (!is.null(datasetInput())) {
       temp = datasetInput()
-      
+
+
       selectizeInput(
         "textField",
         "Which column contains the text you want to analyze?",
@@ -124,7 +130,11 @@ server = function(input, output) {
     }
   })
   
-  # DocID Field
+
+# DocID Field -------------------------------------------------------------
+
+  
+  
   output$docIdField = renderUI({
     if (!is.null(datasetInput())) {
       temp = datasetInput()
@@ -139,6 +149,9 @@ server = function(input, output) {
     }
   })
   
+
+# getTopics / getTerms from Raw Input -------------------------------------
+
   
   
   d1 = reactive({
@@ -184,7 +197,10 @@ server = function(input, output) {
   
   
   
-  #DF Corpus
+
+# Build Corpus ------------------------------------------------------------
+
+  
   df_corpus = reactive({
     dTemp = datasetInput()
     df_corpus = corpus(
@@ -194,6 +210,9 @@ server = function(input, output) {
     )
   })
   
+
+# Count Type  -------------------------------------------------------------
+
   
   output$varType = renderUI({
     radioButtons(
@@ -203,6 +222,12 @@ server = function(input, output) {
       selected = "Prct"
     )
   })
+  
+
+# Number of Keywords to show ----------------------------------------------
+
+  
+  
   output$numKeywords = renderUI({
     sliderInput(
       "numKeywords",
@@ -224,7 +249,10 @@ server = function(input, output) {
     )
   })
   
-  ## Data and Plot for keywords
+
+# Data for dot plots ------------------------------------------------------
+
+ 
   
   d0 = reactive({
     if (!is.null(input$FileInput) &&
@@ -279,6 +307,10 @@ server = function(input, output) {
       }
     }
   })
+  
+
+# Plot dot plots Themes and Topics ----------------------------------------
+
   
   
   output$keywords = renderPlotly({
@@ -363,6 +395,11 @@ server = function(input, output) {
     }
   })
   
+  # 
+
+# Click Information -------------------------------------------------------
+
+  
   output$selection <- renderPrint({
     s <- event_data("plotly_click")
     data.frame(s)
@@ -375,6 +412,9 @@ server = function(input, output) {
     df
   })
   
+
+# Number of context words -------------------------------------------------
+
   
   output$context = renderUI({
     sliderInput(
@@ -385,6 +425,11 @@ server = function(input, output) {
       value = 25
     )
   })
+  
+
+# Render KWIC Table -------------------------------------------------------
+
+  
   
   output$table1 = renderDT({
     selection2 = selection2()
@@ -580,6 +625,11 @@ server = function(input, output) {
 
   })
   
+
+# Num of Keywords - Wordcloud ---------------------------------------------
+
+  
+  
   output$numKeywords2 = renderUI({
     sliderInput(
       "numKeywords2",
@@ -589,6 +639,11 @@ server = function(input, output) {
       value = 100
     )
   })
+  
+
+# Grouping for wordcloud --------------------------------------------------
+
+  
   output$group2 = renderUI({
     colnames <- names(datasetInput())
     # Dropdown for selecting groups on word Clouds
@@ -601,27 +656,29 @@ server = function(input, output) {
     )
   })
   
-  output$wordcloud = renderPlot({
-    if(is.null(input$group2)){
 
-        d1 = df_corpus()
-        x = dfm(
-          d1,
-          remove = c(stopwords(), uselessWords),
-          tolower = T,
-          thesaurus = likeWords,
-          verbose = T,
-          remove_punct = T,
-          remove_numbers = T
-        )
-        par(mar = rep(0, 4))
-        textplot_wordcloud(x,max.words = input$numKeywords2,use.r.layout=F,scale=c(10, .2),colors = "#00AB8E")
+# Plot Wordcloud ----------------------------------------------------------
 
-    }
-    else{
-      d1 = df_corpus()
-      x = dfm(
-        d1,
+  ### New Wordcloud with chi2
+  
+  wcDf = reactive({
+    if (!is.null(input$FileInput) &&
+        !is.null(input$textField) && !is.null(input$docIdField)) {
+      temp = as.data.table(datasetInput())
+        ## Term + No Group
+        if (is.null(input$group2)) {
+          temp <- getTerms(
+            temp,
+            n = input$numKeywords2,
+            text_field = input$textField,
+            docid_field = input$docIdField
+          )
+          temp = temp[variable == 'Prct',]
+        }
+         else{
+      d0 = df_corpus()
+      d0 = dfm(
+        d0,
         remove = c(stopwords(), uselessWords),
         tolower = T,
         groups = input$group2,
@@ -630,11 +687,50 @@ server = function(input, output) {
         remove_punct = T,
         remove_numbers = T
       )
-      par(mar = rep(1, 4))
-      textplot_wordcloud(x,comparison=T,max.words = input$numKeywords2,scale=c(8, .2),title.size=2)
-
-    }
+      d0 = getKeyness(d0, numOut = 20)
+      d0$Term = d0$feature
+      d0$Term = as.character(d0$Term)
+      d0$Term = gsub('[[:digit:]]+', '', d0$Term)
+      d0 = as.data.table(d0)
+      
+          
+          
+        
+         }
+      }
   })
+
+  
+  
+  output$wordcloud = renderPlot({
+      if (is.null(input$group2)){
+        
+        wcDf() %>% slice (1:input$numKeywords2) %>%
+          ggplot + aes(x=1,y=1,size=value,label=Term,color=value)+
+          guides(fill=FALSE)+
+          geom_text_repel(segment.size = 0) +
+          scale_size(range = c(2, 15), guide = T) +
+          scale_y_continuous(breaks = NULL) +
+          scale_x_continuous(breaks = NULL) +
+          labs(x = '', y = '') +
+          theme_classic()+theme(legend.position="none")
+      }
+    else{
+      d2 = wcDf()
+      d2 %>% 
+        ggplot + aes(x=1,y=1,size=chi2,label=Term,color=group)+
+    
+        geom_text_repel(segment.size = 0) +
+        scale_size(range = c(2, 15)) +
+        scale_y_continuous(breaks = NULL) +
+        scale_x_continuous(breaks = NULL) +
+        labs(x = '', y = '') +
+        theme_classic()+theme(legend.text=element_text(size=14))+
+        guides(colour = guide_legend(override.aes = list(size=14)))
+    }
+
+  })
+
   
 }
 
