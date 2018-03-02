@@ -1,4 +1,3 @@
-
 library(needs)
 needs(
   stringr,
@@ -21,7 +20,7 @@ needs(
   shinythemes,
   ggrepel,
   tidyverse,
-  treemapify
+  sentimentr
 )
 options(stringsAsFactors = F)
 source('~/Documents/Git Clones/WD/VOE/getTopics_Terms.R')
@@ -29,7 +28,7 @@ source('~/Documents/Git Clones/WD/VOE/getTopics_Terms.R')
 # Define UI for data upload app ----
 ui <- fluidPage(
   tags$head(tags$style('#text1{font-family: "Cera PRO Regular";
-                                 }'
+                       }'
   )
   ),
   tags$style(type="text/css",
@@ -79,10 +78,11 @@ ui <- fluidPage(
         ),
         column(4, uiOutput('varType'))),
         fluidRow(column(4, uiOutput('group1')), column(4, uiOutput('numKeywords'))),
+        fluidRow(column(4,checkboxInput(inputId ='groupPlot',label = 'Group Plot?',value = F))),
         fluidRow(plotlyOutput('keywords')),
         fluidRow(uiOutput('context')),
         fluidRow(DT::dataTableOutput("table1")))
-
+      
     )))
   )
 
@@ -106,9 +106,10 @@ server = function(input, output) {
     if (is.null(infile))
       return(NULL)
     read.csv(infile$datapath,
-             header = TRUE,
-             check.names = F)
-
+             header = T,sep = ',',na.strings = c(" ","","NA",'na',"n/a",'N/A','N/a','nil')
+             )
+    
+    
     
   })
   
@@ -118,8 +119,8 @@ server = function(input, output) {
   output$textField = renderUI({
     if (!is.null(datasetInput())) {
       temp = datasetInput()
-
-
+      
+      
       selectizeInput(
         "textField",
         "Which column contains the text you want to analyze?",
@@ -130,9 +131,9 @@ server = function(input, output) {
     }
   })
   
-
-# DocID Field -------------------------------------------------------------
-
+  
+  # DocID Field -------------------------------------------------------------
+  
   
   
   output$docIdField = renderUI({
@@ -149,13 +150,15 @@ server = function(input, output) {
     }
   })
   
-
-# getTopics / getTerms from Raw Input -------------------------------------
-
+  
+  # getTopics / getTerms from Raw Input -------------------------------------
+  
   
   
   d1 = reactive({
     temp = as.data.table(datasetInput())
+    temp = temp[!is.na(temp[[input$textField]]),]
+
     
     if (is.null(input$group1)) {
       if (input$analysisType == 'Themes') {
@@ -197,12 +200,14 @@ server = function(input, output) {
   
   
   
-
-# Build Corpus ------------------------------------------------------------
-
+  
+  # Build Corpus ------------------------------------------------------------
+  
   
   df_corpus = reactive({
     dTemp = datasetInput()
+    dTemp = dTemp[!is.na(dTemp[[input$textField]]),]
+    
     df_corpus = corpus(
       as.data.frame(dTemp),
       text_field = input$textField,
@@ -210,9 +215,9 @@ server = function(input, output) {
     )
   })
   
-
-# Count Type  -------------------------------------------------------------
-
+  
+  # Count Type  -------------------------------------------------------------
+  
   
   output$varType = renderUI({
     radioButtons(
@@ -223,9 +228,9 @@ server = function(input, output) {
     )
   })
   
-
-# Number of Keywords to show ----------------------------------------------
-
+  
+  # Number of Keywords to show ----------------------------------------------
+  
   
   
   output$numKeywords = renderUI({
@@ -249,10 +254,10 @@ server = function(input, output) {
     )
   })
   
-
-# Data for dot plots ------------------------------------------------------
-
- 
+  
+  # Data for dot plots ------------------------------------------------------
+  
+  
   
   d0 = reactive({
     if (!is.null(input$FileInput) &&
@@ -308,9 +313,9 @@ server = function(input, output) {
     }
   })
   
-
-# Plot dot plots Themes and Topics ----------------------------------------
-
+  
+  # Plot dot plots Themes and Topics ----------------------------------------
+  
   
   
   output$keywords = renderPlotly({
@@ -338,19 +343,35 @@ server = function(input, output) {
         }
         
         else{
+          if (input$groupPlot==T){
+            p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key, key2 = group)) +
+              geom_point(
+                aes(colour = group),
+                shape = 16,
+                size = 3,
+                show.legend = F
+              ) +
+              scale_color_gradient(low = "#0091ff", high = "#f0650e") +
+               coord_flip() +
+              ylab('Importance Level (Chi2)') + xlab('') +
+              theme_minimal()
+            ggplotly(p)
+          }
           ## Term + Group
-          p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key, key2 = group)) +
-            geom_point(
-              aes(colour = chi2),
-              shape = 16,
-              size = 3,
-              show.legend = F
-            ) +
-            scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-            facet_wrap( ~ group, scales = 'free') + coord_flip() +
-            ylab('Importance Level (Chi2)') + xlab('') +
-            theme_minimal()
-          ggplotly(p)
+         else{
+           p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key, key2 = group)) +
+             geom_point(
+               aes(colour = chi2),
+               shape = 16,
+               size = 3,
+               show.legend = F
+             ) +
+             scale_color_gradient(low = "#0091ff", high = "#f0650e") +
+             coord_flip() + facet_wrap(~group,scales='free')+
+             ylab('Importance Level (Chi2)') + xlab('') +
+             theme_minimal()
+           ggplotly(p)
+         }
         }
       }
       else{
@@ -374,6 +395,25 @@ server = function(input, output) {
           ggplotly(p)
         }
         else{
+          if (input$groupPlot==T){
+            p = ggplot(d0, aes(Topic, value, key = key)) +
+              geom_point(
+                aes(colour = group),
+                shape = 16,
+                size = 3,
+                show.legend = F
+              ) +
+              scale_color_gradient(low = "#0091ff", high = "#f0650e") +
+              coord_flip()  +
+              ylab(ifelse(
+                input$varType == 'Prct',
+                '% of Comments',
+                'Number of Comments'
+              )) + xlab('') +
+              theme_minimal()
+            ggplotly(p) %>% layout(dragmode = 'select')
+          }
+          else{
           p = ggplot(d0, aes(Topic, value, key = key)) +
             geom_point(
               aes(colour = value),
@@ -390,15 +430,16 @@ server = function(input, output) {
             )) + xlab('') +
             theme_minimal()
           ggplotly(p) %>% layout(dragmode = 'select')
+          }
         }
       }
     }
   })
   
   # 
-
-# Click Information -------------------------------------------------------
-
+  
+  # Click Information -------------------------------------------------------
+  
   
   output$selection <- renderPrint({
     s <- event_data("plotly_click")
@@ -412,9 +453,9 @@ server = function(input, output) {
     df
   })
   
-
-# Number of context words -------------------------------------------------
-
+  
+  # Number of context words -------------------------------------------------
+  
   
   output$context = renderUI({
     sliderInput(
@@ -426,9 +467,9 @@ server = function(input, output) {
     )
   })
   
-
-# Render KWIC Table -------------------------------------------------------
-
+  
+  # Render KWIC Table -------------------------------------------------------
+  
   
   
   output$table1 = renderDT({
@@ -475,7 +516,7 @@ server = function(input, output) {
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             y = unique(y)
-
+            
           }
           else if (length(input$group1) == 2) {
             groupNames = (d0$group[d0$key == selection2()$key])
@@ -500,7 +541,7 @@ server = function(input, output) {
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             y = unique(y)
-
+            
           }
           else if (length(input$group1) == 3) {
             groupNames = (d0$group[d0$key == selection2()$key])
@@ -622,12 +663,12 @@ server = function(input, output) {
         }
       }
     }
-
+    
   })
   
-
-# Num of Keywords - Wordcloud ---------------------------------------------
-
+  
+  # Num of Keywords - Wordcloud ---------------------------------------------
+  
   
   
   output$numKeywords2 = renderUI({
@@ -640,9 +681,9 @@ server = function(input, output) {
     )
   })
   
-
-# Grouping for wordcloud --------------------------------------------------
-
+  
+  # Grouping for wordcloud --------------------------------------------------
+  
   
   output$group2 = renderUI({
     colnames <- names(datasetInput())
@@ -656,70 +697,72 @@ server = function(input, output) {
     )
   })
   
-
-# Plot Wordcloud ----------------------------------------------------------
-
+  
+  # Plot Wordcloud ----------------------------------------------------------
+  
   ### New Wordcloud with chi2
   
   wcDf = reactive({
     if (!is.null(input$FileInput) &&
         !is.null(input$textField) && !is.null(input$docIdField)) {
       temp = as.data.table(datasetInput())
-        ## Term + No Group
-        if (is.null(input$group2)) {
-          temp <- getTerms(
-            temp,
-            n = input$numKeywords2,
-            text_field = input$textField,
-            docid_field = input$docIdField
-          )
-          temp = temp[variable == 'Prct',]
-        }
-         else{
-      d0 = df_corpus()
-      d0 = dfm(
-        d0,
-        remove = c(stopwords(), uselessWords),
-        tolower = T,
-        groups = input$group2,
-        thesaurus = likeWords,
-        verbose = T,
-        remove_punct = T,
-        remove_numbers = T
-      )
-      d0 = getKeyness(d0, numOut = 20)
-      d0$Term = d0$feature
-      d0$Term = as.character(d0$Term)
-      d0$Term = gsub('[[:digit:]]+', '', d0$Term)
-      d0 = as.data.table(d0)
+      temp = temp[!is.na(temp[[input$textField]]),]
       
-          
-          
-        
-         }
+      ## Term + No Group
+      if (is.null(input$group2)) {
+        temp <- getTerms(
+          temp,
+          n = input$numKeywords2,
+          text_field = input$textField,
+          docid_field = input$docIdField
+        )
+        temp = temp[variable == 'Prct',]
       }
+      else{
+        d0 = df_corpus()
+        d0 = dfm(
+          d0,
+          remove = c(stopwords(), uselessWords),
+          tolower = T,
+          groups = input$group2,
+          thesaurus = likeWords,
+          verbose = T,
+          remove_punct = T,
+          remove_numbers = T
+        )
+        d0 = getKeyness(d0, numOut = 20)
+        d0$Term = d0$feature
+        d0$Term = as.character(d0$Term)
+        d0$Term = gsub('[[:digit:]]+', '', d0$Term)
+        d0 = as.data.table(d0)
+        
+        
+        
+        
+      }
+    }
   })
-
+  
   
   
   output$wordcloud = renderPlot({
-      if (is.null(input$group2)){
-        
-        wcDf() %>% slice (1:input$numKeywords2) %>%
-          ggplot + aes(x=1,y=1,size=value,label=Term,color=value)+
-          guides(fill=FALSE)+
-          geom_text_repel(segment.size = 0) +
-          scale_size(range = c(2, 15), guide = T) +
-          scale_y_continuous(breaks = NULL) +
-          scale_x_continuous(breaks = NULL) +
-          labs(x = '', y = '') +
-          theme_classic()+theme(legend.position="none")
-      }
+    if (is.null(input$group2)){
+      
+      wcDf() %>% slice (1:input$numKeywords2) %>%
+        ggplot + aes(x=1,y=1,size=value,label=Term,color=value)+
+        guides(fill=FALSE)+
+        geom_text_repel(segment.size = 0) +
+        scale_size(range = c(2, 15), guide = T) +
+        scale_y_continuous(breaks = NULL) +
+        scale_x_continuous(breaks = NULL) +
+        labs(x = '', y = '') +
+        theme_classic()+theme(legend.position="none")
+    }
     else{
       d2 = wcDf()
       d2 %>% 
         ggplot + aes(x=1,y=1,size=chi2,label=Term,color=group)+
-    
+        
         geom_text_repel(segment.size = 0) +
         scale_size(range = c(2, 15)) +
         scale_y_continuous(breaks = NULL) +
@@ -728,9 +771,9 @@ server = function(input, output) {
         theme_classic()+theme(legend.text=element_text(size=14))+
         guides(colour = guide_legend(override.aes = list(size=14)))
     }
-
+    
   })
-
+  
   
 }
 
