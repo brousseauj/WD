@@ -23,7 +23,7 @@ needs(
   sentimentr
 )
 options(stringsAsFactors = F)
-source('~/Documents/Git Clones/WD/VOE/getTopics_Terms.R')
+source('~/Documents/Git Clones/WD/WD/VOE/getTopics_Terms.R')
 
 # Define UI for data upload app ----
 ui <- fluidPage(
@@ -105,12 +105,10 @@ server = function(input, output) {
     infile <- input$FileInput
     if (is.null(infile))
       return(NULL)
-    read.csv(infile$datapath,
-             header = T,sep = ',',na.strings = c(" ","","NA",'na',"n/a",'N/A','N/a','nil')
-             )
+    x=read.csv(infile$datapath,
+             header = T,sep = ',',na.strings = c(" ","","NA",'na',"n/a",'N/A','N/a','nil'),check.names = F)
     
-    
-    
+
   })
   
   # Text Field --------------------------------------------------------------
@@ -158,7 +156,7 @@ server = function(input, output) {
   d1 = reactive({
     temp = as.data.table(datasetInput())
     temp = temp[!is.na(temp[[input$textField]]),]
-
+    
     
     if (is.null(input$group1)) {
       if (input$analysisType == 'Themes') {
@@ -352,26 +350,26 @@ server = function(input, output) {
                 show.legend = F
               ) +
               scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-               coord_flip() +
+              coord_flip() +
               ylab('Importance Level (Chi2)') + xlab('') +
               theme_minimal()
             ggplotly(p)
           }
           ## Term + Group
-         else{
-           p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key, key2 = group)) +
-             geom_point(
-               aes(colour = chi2),
-               shape = 16,
-               size = 3,
-               show.legend = F
-             ) +
-             scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-             coord_flip() + facet_wrap(~group,scales='free')+
-             ylab('Importance Level (Chi2)') + xlab('') +
-             theme_minimal()
-           ggplotly(p)
-         }
+          else{
+            p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key, key2 = group)) +
+              geom_point(
+                aes(colour = chi2),
+                shape = 16,
+                size = 3,
+                show.legend = F
+              ) +
+              scale_color_gradient(low = "#0091ff", high = "#f0650e") +
+              coord_flip() + facet_wrap(~group,scales='free')+
+              ylab('Importance Level (Chi2)') + xlab('') +
+              theme_minimal()
+            ggplotly(p)
+          }
         }
       }
       else{
@@ -414,22 +412,22 @@ server = function(input, output) {
             ggplotly(p) %>% layout(dragmode = 'select')
           }
           else{
-          p = ggplot(d0, aes(Topic, value, key = key)) +
-            geom_point(
-              aes(colour = value),
-              shape = 16,
-              size = 3,
-              show.legend = F
-            ) +
-            scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-            coord_flip() + facet_wrap( ~ group) +
-            ylab(ifelse(
-              input$varType == 'Prct',
-              '% of Comments',
-              'Number of Comments'
-            )) + xlab('') +
-            theme_minimal()
-          ggplotly(p) %>% layout(dragmode = 'select')
+            p = ggplot(d0, aes(Topic, value, key = key)) +
+              geom_point(
+                aes(colour = value),
+                shape = 16,
+                size = 3,
+                show.legend = F
+              ) +
+              scale_color_gradient(low = "#0091ff", high = "#f0650e") +
+              coord_flip() + facet_wrap( ~ group) +
+              ylab(ifelse(
+                input$varType == 'Prct',
+                '% of Comments',
+                'Number of Comments'
+              )) + xlab('') +
+              theme_minimal()
+            ggplotly(p) %>% layout(dragmode = 'select')
           }
         }
       }
