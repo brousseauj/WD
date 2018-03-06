@@ -14,11 +14,12 @@ needs(
 )
 
 uselessWords=c('na',
-'n',
-'n a',
-'none',
-'western digital',
-'wd','nil','comment','seem','like','ot','sir')
+               'n',
+               'n a',
+               'none',
+               'western digital',
+               'wd','nil','comment','seem','like','ot','sir',
+               'go','set','get','can','x')
 
 topics = dictionary(list(
   workLifeBalance = c("work life", "work/life", "worklife"),
@@ -59,13 +60,14 @@ likeWords = dictionary(list(
   coworkers = c('coworkers','coworker','co-workers','coworkers')
 ))
 
- # x = read.csv('~/Desktop/wdps7a_flat_file_abbr.csv')
+# x = read.csv('~/Desktop/wdps7a_flat_file_abbr.csv')
 
-getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), docid_field=1) {
+getTopics = function(x, groups = NA, scheme = "docfreq", text_field
+                    ) {
   x1=as.data.table(x)
   toRemove = is.na(x1[[text_field]])
   x1 = x1[!toRemove,]
-  x = corpus(as.data.frame(x1),text_field = text_field,docid_field = (docid_field))
+  x = corpus(as.data.frame(x1),text_field = text_field)
   x = dfm(x,dictionary=topics)
   if (!is.na(groups)) {
     ## Find Top Features by groups
@@ -73,7 +75,7 @@ getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), d
                     groups = groups,
                     scheme = "docfreq")
     group_names = names(y)
-  
+    
     outPut = list()
     for (i in 1:length(y)) {
       tempd0 = data.frame(as.list(y[i]))
@@ -92,7 +94,7 @@ getTopics = function(x, groups = NA, scheme = "docfreq", text_field=length(x), d
         group2 = groups[2]
         
         tempd0[, Prct := (tempd0[, 2] / nrow(x1[!is.na(get(group1) == group_names_split[i, 1] &
-                                                  get(group2) == group_names_split[i, 2])])) * 100]
+                                                         get(group2) == group_names_split[i, 2])])) * 100]
         
       }
       else if (length(groups) == 3) {
@@ -142,8 +144,7 @@ getTerms = function(x,
                     n,
                     groups = NA,
                     scheme = "docfreq",
-                    text_field = length(x),
-                    docid_field = 1) {
+                    text_field) {
   
   
   if (length(groups) > 3) {
@@ -156,8 +157,7 @@ getTerms = function(x,
   toRemove = is.na(x1[[text_field]])
   x1 = x1[!toRemove,]
   x_corpus = corpus(as.data.frame(x1),
-                    text_field = text_field,
-                    docid_field = docid_field)
+                    text_field = text_field)
   x = dfm(
     x_corpus,
     remove = c(stopwords(), uselessWords),
@@ -264,4 +264,3 @@ getKeyness = function(t1,numOut=30){
 # 
 # test = getTerms(x,groups='Gender',n=100)
 # # test = getTopics(x,groups = c('Region','Gender'))
-
