@@ -35,28 +35,28 @@ ui <- fluidPage(
              ".shiny-output-error { visibility: hidden; }",
              ".shiny-output-error:before { visibility: hidden; }"
   ),
-  
+
   # App title ----
   theme = shinytheme('flatly'),
   titlePanel("Employtics"),
-  
+
   # Sidebar layout with input and output definitions ----
   sidebarLayout(
     # Sidebar panel for inputs ----
     sidebarPanel(
       # Input: Select a file ----
       fileInput("FileInput", "Choose file"),
-      
+
       # Input: Horizontal Line ----
       tags$hr(),
-      
-      
+
+
       uiOutput('textField')
     ),
-    
+
     # Main panel for displaying outputs ----
     mainPanel(tabsetPanel(
-      
+
       tabPanel(
         'Snap Shot',
         fluidRow(column(4, uiOutput('group2')), column(4, uiOutput('numKeywords2'))),
@@ -78,11 +78,11 @@ ui <- fluidPage(
         column(4, uiOutput('varType'))),
         fluidRow(column(4, uiOutput('group1')), column(4, uiOutput('numKeywords'))),
         fluidRow(column(4,checkboxInput(inputId ='groupPlot',label = 'Group Plot?',value = F))),
-        
+
         fluidRow(plotlyOutput('keywords')),
         fluidRow(uiOutput('context')),
         fluidRow(DT::dataTableOutput("table1")))
-      
+
     )))
   )
 
@@ -97,30 +97,30 @@ ui <- fluidPage(
 # Define server logic to read selected file and Visualize----
 server = function(input, output) {
   options(shiny.maxRequestSize = 60 * 1024 ^ 2)
-  
-  
+
+
   # Raw Data Input ----------------------------------------------------------
-  
+
   dataset <- reactive({
     infile <- input$FileInput
     if (is.null(infile))
       return(NULL)
     x = read.csv(infile$datapath,
-             header = T,sep = ',',na.strings = c(" ","","NA",'na',"n/a",'N/A','N/a','nil'),check.names = F)
-    
+             header = T,sep = ',',na.strings = c(" ","","NA",'na',"n/a",'N/A','N/a','nil','x'),check.names = F)
+
     row.names(x) = sprintf('a_%s',seq(1:nrow(x)))
     print(head (x))
     return(x)
   })
-  
+
 
   # Text Field --------------------------------------------------------------
-  
-  
+
+
   output$textField = renderUI({
-   
+
       temp = dataset()
-     
+
       selectizeInput(
         "textField",
         "Which column contains the text you want to analyze?",
@@ -128,24 +128,24 @@ server = function(input, output) {
         options = list(placeholder = 'Select one column', maxItems = 1),
         choices  = colnames(temp)
       )
-    
+
   })
-  
-  
+
+
   # Build Corpus and DFM ---------------------------------------------------
-  
+
   # df_corpus
 
-  
+
   # getTopics / getTerms from Raw Input -------------------------------------
-  
-  
-  
+
+
+
   d1 = reactive({
     temp = as.data.table(dataset())
     temp = temp[!is.na(temp[[input$textField]]),]
-    
-    
+
+
     if (is.null(input$group1)) {
       if (input$analysisType == 'Themes') {
         temp <-
@@ -168,7 +168,7 @@ server = function(input, output) {
             temp,
             groups = input$group1,
             text_field = input$textField
-            
+
           )
       }
       else{
@@ -177,33 +177,33 @@ server = function(input, output) {
           groups = input$group1,
           n = input$numKeywords,
           text_field = input$textField
-          
+
         )
       }
     }
   })
-  
-  
-  
-  
+
+
+
+
   # Build Corpus ------------------------------------------------------------
-  
-  
+
+
   df_corpus = reactive({
     dTemp = dataset()
     dTemp = dTemp[!is.na(dTemp[[input$textField]]),]
-    
+
     df_corpus = corpus(
       as.data.frame(dTemp),
       text_field = input$textField
-      
+
     )
   })
-  
-  
+
+
   # Count Type  -------------------------------------------------------------
-  
-  
+
+
   output$varType = renderUI({
     radioButtons(
       "varType",
@@ -212,12 +212,12 @@ server = function(input, output) {
       selected = "Prct"
     )
   })
-  
-  
+
+
   # Number of Keywords to show ----------------------------------------------
-  
-  
-  
+
+
+
   output$numKeywords = renderUI({
     sliderInput(
       "numKeywords",
@@ -238,12 +238,12 @@ server = function(input, output) {
       choices  = colnames
     )
   })
-  
-  
+
+
   # Data for dot plots ------------------------------------------------------
-  
-  
-  
+
+
+
   d0 = reactive({
     if (!is.null(input$FileInput) &&
         !is.null(input$textField)) {
@@ -287,7 +287,7 @@ server = function(input, output) {
         else{
           ## Topics + Groups
           d0 = d1()[variable == input$varType, ]
-          
+
           d0 = d0[order(d0$Topic, value),]
           key <- row.names(d0)
           d0 <- data.frame(d0, key)
@@ -295,12 +295,12 @@ server = function(input, output) {
       }
     }
   })
-  
-  
+
+
   # Plot dot plots Themes and Topics ----------------------------------------
-  
-  
-  
+
+
+
   output$keywords = renderPlotly({
     d0 = d0()
     if (!is.null(input$FileInput) &&
@@ -324,7 +324,7 @@ server = function(input, output) {
             ))
           ggplotly(p)
         }
-        
+
         else{
           if (input$groupPlot==T){
             p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key,colour=group)) +
@@ -412,28 +412,28 @@ server = function(input, output) {
       }
     }
   })
-  
-  # 
-  
+
+  #
+
   # Click Information -------------------------------------------------------
-  
-  
+
+
   output$selection <- renderPrint({
     s <- event_data("plotly_click")
     data.frame(s)
     s
   })
-  
+
   selection2 <- reactive({
     s <- event_data("plotly_click")
     df <- data.frame(s)
     df
   })
-  
-  
+
+
   # Number of context words -------------------------------------------------
-  
-  
+
+
   output$context = renderUI({
     sliderInput(
       "context",
@@ -443,17 +443,17 @@ server = function(input, output) {
       value = 25
     )
   })
-  
-  
+
+
   # Render KWIC Table -------------------------------------------------------
-  
-  
-  
+
+
+
   output$table1 = renderDT({
     selection2 = selection2()
     d0 = d0()
     d2 <- d0 %>% filter(key == selection2$key)
-    
+
     d2 = as.data.table(d2, stringsAsFactors = F)
     if (!is.null(input$FileInput) &&
         !is.null(input$textField)) {
@@ -492,19 +492,19 @@ server = function(input, output) {
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             y = unique(y)
-            
+
           }
           else if (length(input$group1) == 2) {
             groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
-            
+
             dtemp = corpus_subset(
               x = dtemp,
               subset = get(input$group1[[1]]) ==
                 groupNames[[1]][1] &
                 get(input$group1[[2]]) == groupNames[[1]][2]
             )
-            
+
             y = kwic(
               x = dtemp,
               pattern = d2$Term,
@@ -517,12 +517,12 @@ server = function(input, output) {
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             y = unique(y)
-            
+
           }
           else if (length(input$group1) == 3) {
             groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
-            
+
             dtemp = corpus_subset(
               x = dtemp,
               subset = get(input$group1[[1]]) ==
@@ -530,7 +530,7 @@ server = function(input, output) {
                 get(input$group1[[2]]) == groupNames[[1]][2] &
                 get(input$group1[[3]]) == groupNames[[1]][3]
             )
-            
+
             y = kwic(
               x = dtemp,
               pattern = d2$Term,
@@ -544,7 +544,7 @@ server = function(input, output) {
             y = y[, !c(1:3)]
             y = unique(y)
           }
-          
+
         }
       }
       else{
@@ -563,7 +563,7 @@ server = function(input, output) {
           y$Verbatims = do.call('paste', y)
           y = y[, !c(1:3)]
           y = unique(y)
-          
+
         }
         else{
           ## Topics + Groups
@@ -583,19 +583,19 @@ server = function(input, output) {
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             y = unique(y)
-            
+
           }
           else if (length(input$group1) == 2) {
             groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
-            
+
             dtemp = corpus_subset(
               x = dtemp,
               subset = get(input$group1[[1]]) ==
                 groupNames[[1]][1] &
                 get(input$group1[[2]]) == groupNames[[1]][2]
             )
-            
+
             y = kwic(
               x = dtemp,
               pattern = d2$Topic,
@@ -608,12 +608,12 @@ server = function(input, output) {
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             y = unique(y)
-            
+
           }
           else if (length(input$group1) == 3) {
             groupNames = (d0$group[d0$key == selection2()$key])
             groupNames = strsplit(groupNames, "[.]")
-            
+
             dtemp = corpus_subset(
               x = dtemp,
               subset = get(input$group1[[1]]) ==
@@ -621,7 +621,7 @@ server = function(input, output) {
                 get(input$group1[[2]]) == groupNames[[1]][2] &
                 get(input$group1[[3]]) == groupNames[[1]][3]
             )
-            
+
             y = kwic(
               x = dtemp,
               pattern = d2$Topic,
@@ -634,19 +634,19 @@ server = function(input, output) {
             y$Verbatims = do.call('paste', y)
             y = y[, !c(1:3)]
             y = unique(y)
-            
+
           }
         }
       }
     }
-    
+
   })
-  
-  
+
+
   # Num of Keywords - Wordcloud ---------------------------------------------
-  
-  
-  
+
+
+
   output$numKeywords2 = renderUI({
     sliderInput(
       "numKeywords2",
@@ -656,11 +656,11 @@ server = function(input, output) {
       value = 100
     )
   })
-  
-  
+
+
   # Grouping for wordcloud --------------------------------------------------
-  
-  
+
+
   output$group2 = renderUI({
     colnames <- names(dataset())
     # Dropdown for selecting groups on word Clouds
@@ -672,25 +672,25 @@ server = function(input, output) {
       choices  = colnames
     )
   })
-  
-  
+
+
   # Plot Wordcloud ----------------------------------------------------------
-  
+
   ### New Wordcloud with chi2
-  
+
   wcDf = reactive({
     if (!is.null(input$FileInput) &&
         !is.null(input$textField)) {
       temp = as.data.table(dataset())
       temp = temp[!is.na(temp[[input$textField]]),]
-      
+
       ## Term + No Group
       if (is.null(input$group2)) {
         temp <- getTerms(
           temp,
           n = input$numKeywords2,
           text_field = input$textField,
-          
+
         )
         temp = temp[variable == 'Prct',]
       }
@@ -711,19 +711,19 @@ server = function(input, output) {
         d0$Term = as.character(d0$Term)
         d0$Term = gsub('[[:digit:]]+', '', d0$Term)
         d0 = as.data.table(d0)
-        
-        
-        
-        
+
+
+
+
       }
     }
   })
-  
-  
-  
+
+
+
   output$wordcloud = renderPlot({
     if (is.null(input$group2)){
-      
+
       wcDf() %>% slice (1:input$numKeywords2) %>%
         ggplot + aes(x=1,y=1,size=value,label=Term,color=value)+
         guides(fill=FALSE)+
@@ -736,9 +736,9 @@ server = function(input, output) {
     }
     else{
       d2 = wcDf()
-      d2 %>% 
+      d2 %>%
         ggplot + aes(x=1,y=1,size=chi2,label=Term,color=group)+
-        
+
         geom_text_repel(segment.size = 0) +
         scale_size(range = c(2, 15)) +
         scale_y_continuous(breaks = NULL) +
@@ -747,10 +747,10 @@ server = function(input, output) {
         theme_classic()+theme(legend.text=element_text(size=14))+
         guides(colour = guide_legend(override.aes = list(size=14)))
     }
-    
+
   })
-  
-  
+
+
 }
 
 
