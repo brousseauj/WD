@@ -14,7 +14,18 @@ connect('surveys', host='localhost', port=27017)
 employeeFile=pd.read_csv('~/Desktop/Data/EmpInfo.csv',low_memory=False)
 surveyFile = pd.read_csv('/Users/jb1000249384/Desktop/Data/Western Digital Exit Survey - Employees.csv')
 
-class Survey(EmbeddedDocument):
+class exitSurvey(Document):
+    employeeId = StringField()
+    costCenter = StringField()
+    legacyCompany = StringField()
+    directLaborTag = StringField()
+    employeeType = StringField()
+    employeeStatus = StringField()
+    Gender = StringField()
+    managementLevel = StringField()
+    birthDate = StringField()
+    hireDate = StringField()
+    termDate = StringField()
     surveyDate = StringField()
     primaryForJoin = StringField()
     secondaryForJoin = StringField()
@@ -29,22 +40,8 @@ class Survey(EmbeddedDocument):
     improvingWDComment = StringField()
     canWeContact = StringField()
     newContactEmail = StringField()
-    toks = ListField()
-    meta = {'allow_inheritance':True}
-
-class Employee(Document):
-    employeeId = StringField()
-    costCenter = StringField()
-    legacyCompany = StringField()
-    directLaborTag = StringField()
-    employeeType = StringField()
-    employeeStatus = StringField()
-    Gender = StringField()
-    managementLevel = StringField()
-    birthDate = StringField()
-    hireDate = StringField()
-    termDate = StringField()
-    survey = ListField(EmbeddedDocumentField(Survey))
+    toks_incidentForLeaving = ListField()
+    toks_improvingWD = ListField()
 
 def fileMerger(employeeFile=employeeFile,surveyFile=surveyFile):
     df1 = employeeFile
@@ -61,7 +58,11 @@ def main():
     stop.update(['na','NA','n/a','n a','nil'])
     i = 0
     while i < len(df):
-        emp = Employee(employeeId = df['EmployeeId'][i],
+        toks1=[j for j in word_tokenize(df['incidentForLeaving-Comment'][i].lower()) if j not in stop]
+        toks2=([j for j in word_tokenize(df['improvingWD'][i].lower()) if j not in stop])
+
+
+        emp = exitSurvey(employeeId = df['EmployeeId'][i],
                        costCenter = df['CostCenter'][i],
                        legacyCompany=df['LegacyCompany'][i],
                        directLaborTag = df['DirectIndirect'][i],
@@ -71,30 +72,24 @@ def main():
                        managementLevel = df['ManagementLevel'][i],
                        birthDate = df['BirthDate'][i],
                        hireDate = df['HireDate'][i],
-                       termDate = df['TermDate'][i])
+                       termDate = df['TermDate'][i],
+                       surveyDate = df['surveyDate'][i],
+                       primaryForJoin = df['primaryForJoin'][i],
+                       secondaryForJoin = df['secondaryForJoin'][i],
+                       tertiaryForJoin = df['tertiaryForJoin'][i],
+                       primaryForLeaving = df['primaryForLeaving'][i],
+                       secondaryForLeaving = df['secondaryForLeaving'][i],
+                       tertiaryForLeaving = df['tertiaryForLeaving'][i],
+                       incidentForLeaving = df['incidentForLeaving'][i],
+                       incidentForLeavingComment = df['incidentForLeaving-Comment'][i],
+                       likelyToRecommend = df['likelyToRecommend'][i],
+                       compareWD = df['compareWD'][i],
+                       improvingWDComment = df['improvingWD'][i],
+                       canWeContact = df['contact'][i],
+                       newContactEmail = df['newContactEmail'][i],
+                       toks_incidentForLeaving = toks1,
+                       toks_improvingWD = toks2)
         emp.save()
-        list(df)
-        toks1=([j for j in word_tokenize(df['incidentForLeaving-Comment'][i].lower()) if j not in stop])
-        toks2=([j for j in word_tokenize(df['improvingWD'][i].lower()) if j not in stop])
-        com = Survey(
-            surveyDate = df['surveyDate'][i],
-            primaryForJoin = df['primaryForJoin'][i],
-            secondaryForJoin = df['secondaryForJoin'][i],
-            tertiaryForJoin = df['tertiaryForJoin'][i],
-            primaryForLeaving = df['primaryForLeaving'][i],
-            secondaryForLeaving = df['secondaryForLeaving'][i],
-            tertiaryForLeaving = df['tertiaryForLeaving'][i],
-            incidentForLeaving = df['incidentForLeaving'][i],
-            incidentForLeavingComment = df['incidentForLeavingComment'][i],
-            likelyToRecommend = df['likelyToRecommend'][i],
-            compareWD = df['compareWD'][i],
-            improvingWDComment = df['improvingWD'][i],
-            canWeContact = df['canWeContact'][i],
-            newContactEmail = df['newContactEmail'][i],
-            toks_incidentForLeaving = toks1,
-            toks_improvingWD = toks2
-        )
-        emp.survey.append(com)
         i = i + 1
 
 
