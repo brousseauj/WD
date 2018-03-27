@@ -2,7 +2,7 @@ import pandas as pd
 from mongoengine import *
 import nltk as nltk
 import string
-import datetime
+from datetime import datetime
 import numpy as np
 from nltk.corpus import stopwords
 from nltk import word_tokenize
@@ -10,7 +10,7 @@ from nltk.stem import WordNetLemmatizer
 
 
 connect('surveys', host='localhost', port=27017)
-employeeFile=pd.read_csv('~/Desktop/Data/EmpInfo.csv',low_memory=False,sep='\t')
+employeeFile=pd.read_csv('~/Desktop/Data/EmpInfo.csv',low_memory=False)
 surveyFile = pd.read_csv('/Users/jb1000249384/Desktop/Data/Western Digital Exit Survey - Employees.csv')
 
 
@@ -20,7 +20,7 @@ class Text(EmbeddedDocument):
     tokens = ListField()
 
 class Ratings(EmbeddedDocument):
-    surveyDate = StringField()
+    surveyDate = DateTimeField()
     primaryForJoin = StringField()
     secondaryForJoin = StringField()
     tertiaryForJoin = StringField()
@@ -40,9 +40,9 @@ class Employee(EmbeddedDocument):
     legacyCompany = StringField()
     region = StringField()
     workCountry = StringField()
-    dateOfBirth = StringField()
-    hireDate = StringField()
-    termDate = StringField()
+    dateOfBirth = DateTimeField()
+    hireDate = DateTimeField()
+    termDate = DateTimeField()
 
 class exitSurvey(Document):
     comments = ListField(EmbeddedDocumentField(Text))
@@ -53,9 +53,15 @@ class exitSurvey(Document):
 def fileMerger(employeeFile=employeeFile,surveyFile=surveyFile):
     df1 = employeeFile
     df2 = surveyFile
+
     df2=df2.merge(df1,left_on='EmployeeId',right_on='Employee Id',how='left')
     df2 = df2.replace(np.nan,'',regex=True)
+
     df2['Job Level']=df2['Job Level'].astype(str)
+    df2['Date of Birth']=pd.to_datetime(df2['Date Of Birth'])
+    df2['Seniority Date'] = pd.to_datetime(df2['Seniority Date'])
+    df2['Termination Date']=pd.to_datetime(df2['Termination Date'])
+    df2['surveyDate']=pd.to_datetime(df2['surveyDate'])
     return(df2)
 
 def main():
@@ -72,8 +78,10 @@ def main():
         toks = toks1 + toks2
         toks = [lem.lemmatize(x) for x in toks]
         text = df['improvingWD'][i]+df['incidentForLeaving-Comment'][i]
-
-
+        surveyDate = datetime.date(df['surveyDate'][i])
+        hireDate = datetime.date(df['Seniority Date'][i])
+        termDate = datetime.date(df['Termination Date'][i])
+        birthDate = datetime.date(df['Date of Birth'][i])
 
         entry = exitSurvey(uploadDate = datetime.datetime.now())
         employee = Employee(employeeId = df['Employee Id'][i],
@@ -84,10 +92,10 @@ def main():
                         legacyCompany = df['Legacy Company'][i],
                         region = df['Region'][i],
                         workCountry = df['Work Country'][i],
-                        dateOfBirth = df['Date Of Birth'][i],
-                        hireDate = df['Seniority Date'][i],
-                        termDate = df['Termination Date'][i])
-        answers = Ratings(surveyDate = df['surveyDate'][i],
+                        dateOfBirth = dateOfBirth,
+                        hireDate = hireDate,
+                        termDate = termDate)
+        answers = Ratings(surveyDate = surveyDate,
                         primaryForJoin = df['primaryForJoin'][i],
                         secondaryForJoin = df['secondaryForJoin'][i],
                         tertiaryForJoin = df['tertiaryForJoin'][i],
