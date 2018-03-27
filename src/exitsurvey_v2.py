@@ -65,7 +65,7 @@ def main():
     stop = set(stopwords.words('english'))
     stop.update(string.punctuation)
     stop.update(['na','NA','n/a','n a','nil'])
-    i=1
+    i=0
     while i < len(df):
         toks1=[j for j in word_tokenize(df['incidentForLeaving-Comment'][i].lower()) if j not in stop]
         toks2=([j for j in word_tokenize(df['improvingWD'][i].lower()) if j not in stop])
