@@ -7,6 +7,9 @@ import numpy as np
 from nltk.corpus import stopwords
 from nltk import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+
 
 
 connect('surveys', host='localhost', port=27017)
@@ -49,25 +52,26 @@ class exitSurvey(Document):
     answers = ListField(EmbeddedDocumentField(Ratings))
     employee = ListField(EmbeddedDocumentField(Employee))
     uploadDate = DateTimeField()
+    sentiment = DictField()
 
 def fileMerger(employeeFile=employeeFile,surveyFile=surveyFile):
     df1 = employeeFile
     df2 = surveyFile
 
+
     df2=df2.merge(df1,left_on='EmployeeId',right_on='Employee Id',how='left')
     df2 = df2.replace(np.nan,'',regex=True)
 
     df2['Job Level']=df2['Job Level'].astype(str)
-    df2['Date of Birth']=pd.to_datetime(df2['Date Of Birth'])
+    df2['Date Of Birth']=pd.to_datetime(df2['Date Of Birth'])
     df2['Seniority Date'] = pd.to_datetime(df2['Seniority Date'])
-    df2['Termination Date']=pd.to_datetime(df2['Termination Date'])
     df2['surveyDate']=pd.to_datetime(df2['surveyDate'])
     return(df2)
 
 def main():
     df = fileMerger()
     lem = WordNetLemmatizer()
-
+    sid = SentimentIntensityAnalyzer()
     stop = set(stopwords.words('english'))
     stop.update(string.punctuation)
     stop.update(['na','NA','n/a','n a','nil'])
@@ -77,13 +81,21 @@ def main():
         toks2=([j for j in word_tokenize(df['improvingWD'][i].lower()) if j not in stop])
         toks = toks1 + toks2
         toks = [lem.lemmatize(x) for x in toks]
+        toks = list(set(toks))
         text = df['improvingWD'][i]+df['incidentForLeaving-Comment'][i]
         surveyDate = datetime.date(df['surveyDate'][i])
         hireDate = datetime.date(df['Seniority Date'][i])
-        termDate = datetime.date(df['Termination Date'][i])
-        birthDate = datetime.date(df['Date of Birth'][i])
+        if df['Employee Status'][i] == 'Active':
+            df['Termination Date'][i]='04/01/2262'
+        df['Termination Date'][i]=pd.to_datetime(df['Termination Date'][i])
 
-        entry = exitSurvey(uploadDate = datetime.datetime.now())
+        termDate = datetime.date(df['Termination Date'][i])
+        birthDate = datetime.date(df['Date Of Birth'][i])
+
+        sentiment = sid.polarity_scores(text)
+        type(sentiment)
+        entry = exitSurvey(uploadDate = datetime.now(),
+                           sentiment = sentiment)
         employee = Employee(employeeId = df['Employee Id'][i],
                         employeeStatus = df['Employee Status'][i],
                         gender = df['Gender'][i],
@@ -92,7 +104,7 @@ def main():
                         legacyCompany = df['Legacy Company'][i],
                         region = df['Region'][i],
                         workCountry = df['Work Country'][i],
-                        dateOfBirth = dateOfBirth,
+                        dateOfBirth = birthDate,
                         hireDate = hireDate,
                         termDate = termDate)
         answers = Ratings(surveyDate = surveyDate,
@@ -111,7 +123,7 @@ def main():
         entry.comments.append(comments)
         entry.save()
 
-        print('Document Saved')
+        print(i)
         i = 1 + i
 
 
