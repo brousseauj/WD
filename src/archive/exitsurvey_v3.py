@@ -18,12 +18,10 @@ surveyFile = pd.read_csv('/Users/jb1000249384/Desktop/Data/Western Digital Exit
 
 
 
-class Text(EmbeddedDocument):
+class exit_survey(Document):
     comment = StringField()
     tokens = ListField()
-    sentiment = DictField()
-
-class Ratings(EmbeddedDocument):
+    sentiment = FloatField()
     surveyDate = DateTimeField()
     primaryForJoin = StringField()
     secondaryForJoin = StringField()
@@ -34,8 +32,6 @@ class Ratings(EmbeddedDocument):
     incidentForLeaving = StringField()
     likelyToRecommend = StringField()
     compareWD = StringField()
-
-class Employee(EmbeddedDocument):
     employeeId = StringField()
     employeeStatus = StringField()
     gender = StringField()
@@ -47,11 +43,9 @@ class Employee(EmbeddedDocument):
     dateOfBirth = DateTimeField()
     hireDate = DateTimeField()
     termDate = DateTimeField()
-
-class exitSurvey(Document):
-    comments = ListField(EmbeddedDocumentField(Text))
-    answers = ListField(EmbeddedDocumentField(Ratings))
-    employee = ListField(EmbeddedDocumentField(Employee))
+    comments = ListField()
+    answers = ListField()
+    employee = ListField()
     uploadDate = DateTimeField()
 
 def fileMerger(employeeFile=employeeFile,surveyFile=surveyFile):
@@ -82,7 +76,7 @@ def main():
         toks = toks1 + toks2
         toks = [lem.lemmatize(x) for x in toks]
         toks = list(set(toks))
-        text = df['improvingWD'][i]+" "+df['incidentForLeaving-Comment'][i]
+        text = df['improvingWD'][i]+df['incidentForLeaving-Comment'][i]
         surveyDate = datetime.date(df['surveyDate'][i])
         hireDate = datetime.date(df['Seniority Date'][i])
         if df['Employee Status'][i] == 'Active':
@@ -92,10 +86,9 @@ def main():
         termDate = datetime.date(df['Termination Date'][i])
         birthDate = datetime.date(df['Date Of Birth'][i])
 
-        sentiment = sid.polarity_scores(text)
-        type(sentiment)
-        entry = exitSurvey(uploadDate = datetime.now())
-        employee = Employee(employeeId = df['Employee Id'][i],
+        sentiment = sid.polarity_scores(text)['compound']
+        entry = exit_survey(uploadDate = datetime.now(),
+                        employeeId = df['Employee Id'][i],
                         employeeStatus = df['Employee Status'][i],
                         gender = df['Gender'][i],
                         jobFamilyGroup = df['Job Family Group'][i],
@@ -105,8 +98,8 @@ def main():
                         workCountry = df['Work Country'][i],
                         dateOfBirth = birthDate,
                         hireDate = hireDate,
-                        termDate = termDate)
-        answers = Ratings(surveyDate = surveyDate,
+                        termDate = termDate,
+                        surveyDate = surveyDate,
                         primaryForJoin = df['primaryForJoin'][i],
                         secondaryForJoin = df['secondaryForJoin'][i],
                         tertiaryForJoin = df['tertiaryForJoin'][i],
@@ -115,13 +108,9 @@ def main():
                         tertiaryForLeaving = df['tertiaryForLeaving'][i],
                         incidentForLeaving = df['incidentForLeaving'][i],
                         likelyToRecommend = df['likelyToRecommend'][i],
-                        compareWD = df['compareWD'][i])
-        comments = Text(comment = text,tokens = toks,sentiment = sentiment)
-        entry.answers.append(answers)
-        entry.employee.append(employee)
-        entry.comments.append(comments)
+                        compareWD = df['compareWD'][i],
+                        comment = text,tokens = toks,sentiment = sentiment)
         entry.save()
-
         print(i)
         i = 1 + i
 
