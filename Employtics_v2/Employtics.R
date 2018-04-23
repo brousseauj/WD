@@ -1,4 +1,4 @@
-#
+
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
 #
@@ -60,14 +60,16 @@ ui <- fluidPage(
     
     # Show a plot of the generated distribution
     mainPanel(
-      # dataTableOutput('result')
       fluidRow(plotlyOutput('plot')),
       fluidRow(htmlOutput("nSize")),
       br(),
       fluidRow(DT::dataTableOutput("textTable"))
+<<<<<<< HEAD:EmployticsV4/app.R
       
 )
     
+=======
+>>>>>>> 297dd65cb20c45fedae43a798ace966a8178215b:Employtics_v2/Employtics.R
     )
   )
 
@@ -107,6 +109,10 @@ server <- function(input, output) {
     # x = x$batch(size = len)
     return(m)
   })
+<<<<<<< HEAD:EmployticsV4/app.R
+=======
+  
+>>>>>>> 297dd65cb20c45fedae43a798ace966a8178215b:Employtics_v2/Employtics.R
   
 
 # Build Choices for selectors ---------------------------------------------
@@ -124,6 +130,7 @@ server <- function(input, output) {
     emp = lapply(empChoices, function(x) {
       (unique(x))
     })
+<<<<<<< HEAD:EmployticsV4/app.R
     emp = emp[2:8]
     emp = lapply(emp,function(emp)emp[emp != ""])
     
@@ -255,6 +262,141 @@ server <- function(input, output) {
   })
   
   
+=======
+    d1 = d1[2:8]
+    d1 = lapply(d1,function(d1)d1[d1 != ""])
+    
+    #build choices list
+    choices = c(list(
+      'Gender' = d1$gender,
+      'Employee Status' = d1$employeeStatus,
+      'Job Family Group' =  d1$jobFamilyGroup,
+      'Job Level' =  d1$jobLevel,
+      'Legacy Company' = d1$legacyCompany,
+      'Region'= d1$region,
+      'Work Country' = d1$workCountry
+      # ,
+      # 'Groupings'=list('Employee Status'= names(d1)[1],
+      #                  'Gender' = names(d1)[2],
+      #                  'Job Family Group'= names(d1)[3],
+      #                  'Job Level'=names(d1)[4],
+      #                  'Legacy Company' = names(d1)[5],
+      #                  'Region' = names(d1)[6],
+      #                  'Work Country' = names(d1)[7])
+    ))
+    return(choices)
+  })
+  
+  # ratings — for later -----------------------------------------------------
+  
+  
+  #  ratingsChoices = reactive({
+  #    req(input$dataSelect)
+  #    m = dataset()
+  #    
+  #    #Get unique lines from surveys.answers
+  #     if (input$dataSelect == 'Engagement Survey'){
+  #       ratingsChoices = m$find()
+  #       ratingsChoices = ratingsChoices$answers
+  #       ratingsChoices = do.call(rbind.data.frame,ratingsChoices)
+  #       ratingsChoices = apply(X = ratingsChoices,MARGIN = 2,FUN = unique)
+  #     }
+  #    else{
+  #   ratingsChoices= m$distinct({'answers'})
+  #    }
+  #    
+  #    #Find unique choices
+  #    d1 = lapply(ratingsChoices, function(x) {
+  #      (unique(x))
+  #    })
+  #    d1 = d1[2:length(d1)]
+  #    d1 = lapply(d1,function(d1)d1[d1 != ""])
+  #  
+  # if (input$dataSelect == 'Exit Survey'){
+  #   choices = c(list( "Primary reason for joining" = d1$primaryForJoin,
+  #                     "Secondary reason for joining" = d1$secondaryForJoin,
+  #                     "Tertiary for joining" = d1$tertiaryForJoin,
+  #                     "Primary for leaving" = d1$primaryForLeaving,
+  #                     "Secondary for leaving" = d1$secondaryForLeaving,
+  #                     "Tertiary for leaving" = d1$tertiaryForLeaving,
+  #                     "Incidient for leaving?" = d1$incidentForLeaving,
+  #                     "Likely to recommend WD" = d1$likelyToRecommend,
+  #                     "Compare WD to other companies" = d1$compareWD))
+  #   }
+  #  else if (input$dataSelect == 'New Hire 30 Day'){
+  #    choices = c(list('Position was described accurately' = d1$accuratePosition, 
+  #                     "Good communication after job offer" = d1$communication, 
+  #                     "Smooth transition from HR to Manager" = d1$smoothTransition, 
+  #                     "New hire oreintation was affective" = d1$NewHireAffective, 
+  #                     "Appropriate amount of training" =  d1$receivedTraining, 
+  #                     "Know how to contact HR Central" = d1$contactHRCentral, 
+  #                     "Know how to contact IT" = d1$contactIT ,
+  #                     "Agreement - Vision, values, and history" = d1$agreementVision,
+  #                     "Agreement - Benefit offerings" = d1$agreementNewHireBenefits, 
+  #                     "Agreement - Performance management philosophy" = d1$agreementNewHirePerformance ,
+  #                     "Agreement - IT (Computer, phone, network
+  #                      accounts, email" = d1$agreementIT, 
+  #                     "Agreement - Facilities (Cube or office, desk, chair)" = d1$agreementFacilities ,
+  #                     "Agreement - Process guidance (Intranet, expenses, purchasing)" = d1$agreementProcessGuidance ,
+  #                     "Agreement - Intro to co-workers" = d1$agreementCoworkerIntroduction, 
+  #                     "Agreement - Transportation" = d1$agreementTransportation, 
+  #                     "Manager helped define expectations" = d1$defineExpectations, 
+  #                     "Clear link between my work and WD objectives" = d1$clearLinkObjectives, 
+  #                     "Feeback from manager about Performance" = d1$improvePerformance, 
+  #                     "Discussing concerns with manager" = d1$discussingConcerns, 
+  #                     "Systems and processes needed to do my job" = d1$systemsAndProcesses, 
+  #                     "Able to perform my job on my own in acceptable amount of time" = d1$jobPerformanceTime ,
+  #                     "Apply discretionary effort" = d1$discretionary, 
+  #                     "Values of WD align with my own" = d1$values, 
+  #                     "Sense of beloning" = d1$belonging, 
+  #                     "Statisfied with decision to join" = d1$statisfiedDecision, 
+  #                     "WD is a good place to work" =d1$goodPlaceToWork, 
+  #                     "Employee in 3-5 years?" = d1$future35years))
+  #    x1 = choices
+  #    x2 = rapply(x1, function(x) ifelse(x=='Strongly Agree' | x=='Agree','Pos',ifelse(x=='Not Applicable',x,'Neg')), how = "replace")
+  #    x2 = lapply(x2,function(x) unique(x))
+  #    choices = x2
+  #  }
+  #   else if(input$dataSelect == 'Engagement Survey'){
+  #     choices = c(list(
+  #       
+  #       "Clear link between my work and WD" =d1$clearLink,
+  #       "Manger gives me feedback about performance" = d1$managerGivesFeedback,
+  #       "Comfortable discussing concerns with Manager" = d1$comfortableDiscussingConcernsWithManager,
+  #       "Appropriately involved in decisions" = d1$involvedInDecisions,
+  #       "Sufficient effort to gather opinions" = d1$effortToGetOpinions,
+  #       "Recommend WD to a friend" = d1$recommendWD,
+  #       "Feeling of personal accomplishment" = d1$feelingPersonalAccomplishment,
+  #       "Encouraged to improve processes" = d1$encouragedToReinvent,
+  #       "WD is making changes to compete" = d1$wdIsMakingChangesToCompete,
+  #       "People here take responsibility for actions" = d1$peopleTakeResponsibilityForActions,
+  #       "Effective cooperations between departments" = d1$affectiveCooperationBetweenDepartments,
+  #       "People cooperate to get things done" = d1$peopleCooperateToGetThingsDone,
+  #       "Accomplishments are recognized" = d1$accomplishmentsAreRecognized,
+  #       "Systems to do my job" = d1$systemsToDoJob,
+  #       "Processes to do my job" = d1$processesToDoJob,
+  #       "Team has resources to do the job" = d1$teamHasResourcesToDoJob,
+  #       "Opportunity to improve skills" = d1$givenOpportunityToImproveSkills,
+  #       "Job makes use of my skills" = d1$jobMakesUseOfSkills,
+  #       "Career advancement at WD" = d1$careerAdvancement,
+  #       "Advancement given fairly"= d1$advancementGivenFairly,
+  #       "WD commited to exceeding customer expectations" = d1$WDCommittedToExceedingCustomerExpectations,
+  #       "I can see a future at WD over the next 3-5" = d1$seeAFutureAtWD,
+  #       "Clear strategy of the company" = d1$clearStrategyOfCompany,
+  #       "Clear performance goals" = d1$clearPerformanceGoals,
+  #       "Meet with manager to discuss goals" = d1$meetingWithManagerToDiscussGoals,
+  #       "Meaningful talk about Performance" = d1$meaningfulTalkAboutPerformance,
+  #       "WD supports communities" = d1$WDSupportsCommunities,
+  #       "Volunteer program reinforces company values" = d1$volunteerReinforcesValues,
+  #       "Volunteered in the last year" = d1$volunteerInLastYear)
+  #     )
+  #   }
+  #   
+  # 
+  #    
+  #  return(choices)
+  #  })
+>>>>>>> 297dd65cb20c45fedae43a798ace966a8178215b:Employtics_v2/Employtics.R
   
   #Dict for empchoices --------------------------------------------------------
   # Translate proper format for DB format
@@ -456,7 +598,17 @@ server <- function(input, output) {
     req(input$PempSelector1)
     # print(input$PempSelector1)
     empChoices = empChoices()
+<<<<<<< HEAD:EmployticsV4/app.R
    
+=======
+    # groupings = c('employeeStatus',
+    #               'gender',
+    #               'jobFammilyGroup',
+    #               'jobLevel',
+    #               'legacyCompany',
+    #               'region' ,
+    #               'workCountry')
+>>>>>>> 297dd65cb20c45fedae43a798ace966a8178215b:Employtics_v2/Employtics.R
     d2 = NULL
     for (i in 1:length(input$PempSelector1)) {
       d1 = c(names(empChoices)[empChoices %>% map_lgl( ~ input$PempSelector1[i] %in% .)],
@@ -465,7 +617,10 @@ server <- function(input, output) {
     }
     d2 = mapper(d2)
     d2 = as.data.table(d2)
+<<<<<<< HEAD:EmployticsV4/app.R
     
+=======
+>>>>>>> 297dd65cb20c45fedae43a798ace966a8178215b:Employtics_v2/Employtics.R
     return(d2)
   })
   
@@ -559,9 +714,13 @@ server <- function(input, output) {
       })),2,all)
       df = df[tokeep==TRUE,]
       
+<<<<<<< HEAD:EmployticsV4/app.R
       
     }
     
+=======
+    }
+>>>>>>> 297dd65cb20c45fedae43a798ace966a8178215b:Employtics_v2/Employtics.R
   })
   
   
@@ -672,7 +831,7 @@ server <- function(input, output) {
     
     if(!is.null(input$CempSelector1) && !is.null(input$PempSelector1)){
       
-      primary = nrow(df[PC=='Primary',])
+      primary = nrow(df[PC=='Primary'])
       comparison = nrow(df[PC == 'Comparison'])
       
       df = data.table(count = c(primary,comparison))
@@ -680,7 +839,7 @@ server <- function(input, output) {
       
     }
     else if (is.null(input$CempSelector1) && !is.null(input$PempSelector1)){
-      primary = nrow(df[PC=='Primary',])
+      primary = nrow(df[PC=='Primary'])
       comparison = nrow(df[PC == 'Comparison'])
       
       df = data.table(count = c(primary,comparison))
@@ -903,6 +1062,7 @@ server <- function(input, output) {
     }
     
     
+<<<<<<< HEAD:EmployticsV4/app.R
   })
 
   output$nSize = renderText({
@@ -926,6 +1086,30 @@ server <- function(input, output) {
   # 
   # })
   
+=======
+  })
+  
+  # output$selection <- reactive({
+  #   s <- print(textTable())
+  #   
+  # as.list(s)
+  #   
+  # })
+  
+  
+  
+  output$plot = renderPlotly({plot()})
+  
+  output$nSize = renderText({
+    sampleSize = sampleSize()
+    if(nrow(sampleSize)==1){
+      HTML(paste('Sample Size:',sampleSize))
+    }
+    else{
+      HTML(paste('Sample Size','<br>','Primary:',sampleSize[1,],'<br>','Comparison:',sampleSize[2,]))
+    }
+  })
+>>>>>>> 297dd65cb20c45fedae43a798ace966a8178215b:Employtics_v2/Employtics.R
   
   
   
