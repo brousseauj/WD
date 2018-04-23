@@ -94,33 +94,39 @@ def main():
 
         sentiment = sid.polarity_scores(text)
         type(sentiment)
-        entry = exitSurvey(uploadDate = datetime.now())
-        employee = Employee(employeeId = df['Employee Id'][i],
-                        employeeStatus = df['Employee Status'][i],
-                        gender = df['Gender'][i],
-                        jobFamilyGroup = df['Job Family Group'][i],
-                        jobLevel = df["Job Level"][i],
-                        legacyCompany = df['Legacy Company'][i],
-                        region = df['Region'][i],
-                        workCountry = df['Work Country'][i],
-                        dateOfBirth = birthDate,
-                        hireDate = hireDate,
-                        termDate = termDate)
-        answers = Ratings(surveyDate = surveyDate,
-                        primaryForJoin = df['primaryForJoin'][i],
-                        secondaryForJoin = df['secondaryForJoin'][i],
-                        tertiaryForJoin = df['tertiaryForJoin'][i],
-                        primaryForLeaving = df['primaryForLeaving'][i],
-                        secondaryForLeaving = df['secondaryForLeaving'][i],
-                        tertiaryForLeaving = df['tertiaryForLeaving'][i],
-                        incidentForLeaving = df['incidentForLeaving'][i],
-                        likelyToRecommend = df['likelyToRecommend'][i],
-                        compareWD = df['compareWD'][i])
-        comments = Text(comment = text,tokens = toks,sentiment = sentiment)
-        entry.answers.append(answers)
-        entry.employee.append(employee)
-        entry.comments.append(comments)
-        entry.save()
+
+        ignoreList = ['na ','no ','NA ','No ','no comment ','nil ','No comment ',
+                      'n/a ','?#Name ','none ','None ',' none ','nothing ',
+                      'Nothing ','Nothing. ',' ']
+        if text not in ignoreList:
+
+            entry = exitSurvey(uploadDate = datetime.now())
+            employee = Employee(employeeId = df['Employee Id'][i],
+                            employeeStatus = df['Employee Status'][i],
+                            gender = df['Gender'][i],
+                            jobFamilyGroup = df['Job Family Group'][i],
+                            jobLevel = df["Job Level"][i],
+                            legacyCompany = df['Legacy Company'][i],
+                            region = df['Region'][i],
+                            workCountry = df['Work Country'][i],
+                            dateOfBirth = birthDate,
+                            hireDate = hireDate,
+                            termDate = termDate)
+            answers = Ratings(surveyDate = surveyDate,
+                            primaryForJoin = df['primaryForJoin'][i],
+                            secondaryForJoin = df['secondaryForJoin'][i],
+                            tertiaryForJoin = df['tertiaryForJoin'][i],
+                            primaryForLeaving = df['primaryForLeaving'][i],
+                            secondaryForLeaving = df['secondaryForLeaving'][i],
+                            tertiaryForLeaving = df['tertiaryForLeaving'][i],
+                            incidentForLeaving = df['incidentForLeaving'][i],
+                            likelyToRecommend = df['likelyToRecommend'][i],
+                            compareWD = df['compareWD'][i])
+            comments = Text(comment = text,tokens = toks,sentiment = sentiment)
+            entry.answers.append(answers)
+            entry.employee.append(employee)
+            entry.comments.append(comments)
+            entry.save()
 
         print(i)
         i = 1 + i
