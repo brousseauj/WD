@@ -23,7 +23,7 @@ needs(
   sentimentr
 )
 options(stringsAsFactors = F)
-source('~/Documents/Git Clones/WD/WD/VOE/getTopics_Terms.R')
+source('/Users/jb1000249384/github/WD/VOE/getTopics_Terms.R')
 
 # Define UI for data upload app ----
 ui <- fluidPage(
@@ -106,7 +106,7 @@ server = function(input, output) {
     if (is.null(infile))
       return(NULL)
     x = read.csv(infile$datapath,
-             header = T,sep = ',',na.strings = c(" ","","NA",'na',"n/a",'N/A','N/a','nil','x'),check.names = F)
+             header = T,sep = ',',na.strings = c("0"," ","","NA",'na',"n/a",'N/A','N/a','nil','x'),check.names = F)
 
     row.names(x) = sprintf('a_%s',seq(1:nrow(x)))
     print(head (x))
@@ -336,17 +336,17 @@ server = function(input, output) {
           }
           ## Term + Group
           else{
+            print(head(d0))
             p = ggplot(d0, aes(reorder(Term, chi2),chi2, key = key, key2 = group)) +
               geom_point(
                 aes(colour = chi2),
                 shape = 16,
                 size = 3,
                 show.legend = F
-              ) +
+              ) +facet_wrap(~group,scales='free')+
               scale_color_gradient(low = "#0091ff", high = "#f0650e") +
-              coord_flip() + facet_wrap(~group,scales='free')+
-              ylab('Importance Level (Chi2)') + xlab('') +
-              theme_minimal()
+              coord_flip() + 
+              ylab('Importance Level (Chi2)') + xlab('') 
             ggplotly(p)
           }
         }
@@ -455,12 +455,16 @@ server = function(input, output) {
     d2 <- d0 %>% filter(key == selection2$key)
 
     d2 = as.data.table(d2, stringsAsFactors = F)
+    d2
     if (!is.null(input$FileInput) &&
         !is.null(input$textField)) {
       if (input$analysisType == 'Term') {
         ## Term + No Group
         if (is.null(input$group1)) {
           dtemp = df_corpus()
+          # tableout = as.data.frame(unique(dtemp$documents[[text_field]][grep(pattern = d2[[1]],x =dtemp$documents[[text_field]],ignore.case = T,fixed = T)]))
+          # datatable(tableout, options = list(searchHighlight = TRUE, search = list(search = d2[[1]])))
+          # 
           y = kwic(
             x = dtemp,
             pattern = d2[[1]],
@@ -480,6 +484,9 @@ server = function(input, output) {
           if (length(input$group1) == 1) {
             dtemp = corpus_subset(x = dtemp,
                                   subset = get(input$group1) == d2$group)
+            # tableout = as.data.frame(unique(dtemp$documents[[input$textField]][grep(pattern = d2[[1]],x =dtemp$documents[[input$textField]],fixed = T)]))
+            # datatable(tableout, options = list(searchHighlight = TRUE, search = list(search = d2[[1]])))
+            # 
             y = kwic(
               x = dtemp,
               pattern = d2$Term,
@@ -689,7 +696,7 @@ server = function(input, output) {
         temp <- getTerms(
           temp,
           n = input$numKeywords2,
-          text_field = input$textField,
+          text_field = input$textField
 
         )
         temp = temp[variable == 'Prct',]
