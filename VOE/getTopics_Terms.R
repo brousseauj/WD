@@ -19,7 +19,7 @@ uselessWords=c('na',
                'none',
                'western digital',
                'wd','nil','comment','seem','like','ot','sir',
-               'go','set','get','can','x')
+               'go','set','get','can','x','0')
 
 topics = dictionary(list(
   workLifeBalance = c("work life", "work/life", "worklife"),
@@ -60,7 +60,7 @@ likeWords = dictionary(list(
   coworkers = c('coworkers','coworker','co-workers','coworkers')
 ))
 
-# x = read.csv('~/Desktop/wdps7a_flat_file_abbr.csv')
+# x = read.csv('~/Desktop/Data/wdps7a_flat_file_abbr.csv')
 
 getTopics = function(x, groups = NA, scheme = "docfreq", text_field
                     ) {
@@ -251,7 +251,7 @@ getTerms = function(x,
 getKeyness = function(t1,numOut=30){
   outp=list()
   for ( i in 1:length(docnames(t1))){
-    y=textstat_keyness(t1,target = docnames(t1)[[i]])
+    # y=textstat_keyness(t1,target = docnames(t1)[[i]])
     y$group = docnames(t1)[i]
     y = y[1:numOut,]
     outp = rbind(y,outp)
